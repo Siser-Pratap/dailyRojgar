@@ -1,0 +1,101 @@
+.how {
+  background: var(--white);
+  padding: 60px 0 72px;
+}
+
+.how-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gray-900);
+  text-align: center;
+  margin-bottom: 52px;
+  letter-spacing: -0.3px;
+}
+
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  position: relative;
+}
+
+.how-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  padding: 0 16px;
+}
+
+.how-number {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--white);
+  position: relative;
+  z-index: 1;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.how-connector {
+  position: absolute;
+  top: 18px;
+  left: calc(50% + 18px);
+  right: calc(-50% + 18px);
+  height: 2px;
+  background: transparent;
+  border-top: 2px dashed var(--primary-border);
+  z-index: 0;
+}
+
+.how-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+}
+
+.how-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.how-step-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 8px;
+}
+
+.how-step-desc {
+  font-size: 13px;
+  color: var(--gray-500);
+  line-height: 1.5;
+  max-width: 180px;
+}
+
+@media (max-width: 768px) {
+  .how-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 36px 16px;
+  }
+
+  .how-connector {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .how-grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+}

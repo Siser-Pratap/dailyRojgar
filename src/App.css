@@ -1,0 +1,14 @@
+.app {
+  min-height: 100vh;
+}
+
+.app--hidden {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.app--visible {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}

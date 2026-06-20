@@ -1,0 +1,84 @@
+.phone-hero {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.phone-hero-shell {
+  width: 200px;
+  background: #1a1a1a;
+  border-radius: 28px;
+  padding: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 1.5px rgba(255,255,255,0.12);
+  border: 2px solid #2a2a2a;
+}
+
+.phone-hero-screen {
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.phone-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #111;
+  background: #fff;
+}
+
+.phone-map {
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+}
+
+.phone-job-card {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+}
+
+.phone-job-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.phone-job-info strong {
+  font-size: 10px;
+  font-weight: 700;
+  color: #111;
+}
+
+.phone-job-info span {
+  font-size: 9px;
+  color: #6b7280;
+}
+
+.phone-job-wage {
+  font-size: 9px !important;
+  color: #16a34a !important;
+  font-weight: 600;
+}
+
+.phone-apply-btn {
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
