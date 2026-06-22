@@ -12,6 +12,8 @@ import { errorMiddleware } from './middleware/error.middleware'
 import { httpLogStream } from './utils/logger'
 import apiRoutes from './routes/index'
 
+const xss = require('xss-clean')
+
 export function createApp(): Application {
   const app = express()
 
@@ -46,6 +48,7 @@ export function createApp(): Application {
 
   // ─── Data sanitization ────────────────────────────────────────────────────
   app.use(mongoSanitize()) // prevent NoSQL injection
+  app.use(xss()) // sanitize HTML in request body/query/params
   app.use(hpp()) // prevent HTTP parameter pollution
 
   // ─── Compression & logging ────────────────────────────────────────────────

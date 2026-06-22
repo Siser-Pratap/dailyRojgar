@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { env } from '../config/env'
 import { ApiError } from '../utils/ApiError'
+import { getRedisClient } from '../config/redis'
 
 export interface JWTPayload {
   sub: string
@@ -20,7 +21,11 @@ declare global {
 }
 
 /** Verifies JWT and attaches decoded payload to req.user */
-export function authenticate(req: Request, _res: Response, next: NextFunction): void {
+export async function authenticate(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> {
   const authHeader = req.headers.authorization
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -30,6 +35,12 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
   const token = authHeader.slice(7)
 
   try {
+    const redis = getRedisClient()
+    const isBlacklisted = await redis.get(`blacklist:${token}`)
+    if (isBlacklisted) {
+      return next(ApiError.unauthorized('Token revoked', 'AUTH_002'))
+    }
+
     const payload = jwt.verify(token, env.JWT_SECRET) as JWTPayload
     req.user = payload
     next()

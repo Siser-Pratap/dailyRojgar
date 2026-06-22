@@ -44,7 +44,10 @@ export const AuthController = {
       })
     }
 
-    await logoutUser(req.user.sub)
+    const accessToken = req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7)
+      : undefined
+    await logoutUser(req.user.sub, accessToken)
     return ApiResponse.success(res, {
       statusCode: 200,
       message: 'Logout successful',

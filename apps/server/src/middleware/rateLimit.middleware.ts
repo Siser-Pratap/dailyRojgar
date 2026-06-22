@@ -23,6 +23,17 @@ export const authRateLimiter = rateLimit({
   },
 })
 
+/** OTP verification limiter: 5 requests per minute per IP */
+export const otpRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, _res, next) => {
+    next(ApiError.tooManyRequests('Too many OTP attempts, please try again later'))
+  },
+})
+
 /** Upload limiter: 20 requests per hour per IP */
 export const uploadRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

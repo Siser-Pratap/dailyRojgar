@@ -4,6 +4,7 @@ import { ReviewModel } from '../models/Review.model'
 import { UserModel } from '../models/User.model'
 import { WorkerProfileModel } from '../models/WorkerProfile.model'
 import { ApiError } from '../utils/ApiError'
+import { emitBookingUpdate } from '../sockets/socket.service'
 
 export async function getAdminDashboard() {
   const [users, workers, bookings, payments, reviews, disputedBookings] = await Promise.all([
@@ -52,5 +53,12 @@ export async function resolveDispute(bookingId: string, status: 'resolved' | 're
     { new: true },
   ).lean()
   if (!booking) throw ApiError.notFound('Dispute')
+  emitBookingUpdate({
+    bookingId: booking._id.toString(),
+    customerId: booking.customerId.toString(),
+    workerId: booking.workerId.toString(),
+    status: booking.status,
+    booking,
+  })
   return booking
 }

@@ -6,6 +6,8 @@ import { generateBookingNumber } from '../utils/bookingNumber'
 import { ApiError } from '../utils/ApiError'
 import { parsePagination } from '../utils/pagination'
 import { createNotification } from './notification.service'
+import { createChatForBooking } from './chat.service'
+import { emitBookingUpdate } from '../sockets/socket.service'
 
 function ensureOwner(actualId: unknown, expectedId: string, message = 'Not allowed') {
   if (String(actualId) !== expectedId) throw ApiError.forbidden(message)
@@ -37,6 +39,14 @@ async function transitionBooking(
   if (nextStatus === 'completed') booking.completedAt = new Date()
   if (nextStatus === 'cancelled') booking.cancelledAt = new Date()
   await booking.save()
+
+  emitBookingUpdate({
+    bookingId: booking._id.toString(),
+    customerId: booking.customerId.toString(),
+    workerId: booking.workerId.toString(),
+    status: nextStatus,
+    booking: booking.toObject(),
+  })
 
   await createNotification({
     userId: options.requireWorker ? booking.customerId : booking.workerId,
@@ -91,6 +101,20 @@ export async function createBooking(
     platformFee,
     totalAmount,
     statusHistory: [{ status: 'pending', by: new Types.ObjectId(customerId), at: new Date() }],
+  })
+
+  await createChatForBooking({
+    bookingId: booking._id.toString(),
+    customerId,
+    workerId: input.workerId,
+  })
+
+  emitBookingUpdate({
+    bookingId: booking._id.toString(),
+    customerId,
+    workerId: input.workerId,
+    status: booking.status,
+    booking: booking.toObject(),
   })
 
   await createNotification({
@@ -188,6 +212,15 @@ export async function disputeBooking(bookingId: string, customerId: string, reas
     reason,
   })
   await booking.save()
+
+  emitBookingUpdate({
+    bookingId: booking._id.toString(),
+    customerId: booking.customerId.toString(),
+    workerId: booking.workerId.toString(),
+    status: 'disputed',
+    booking: booking.toObject(),
+  })
+
   await createNotification({
     userId: booking.workerId,
     title: 'Booking disputed',

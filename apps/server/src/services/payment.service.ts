@@ -4,6 +4,7 @@ import { PaymentModel } from '../models/Payment.model'
 import { env } from '../config/env'
 import { ApiError } from '../utils/ApiError'
 import { createNotification } from './notification.service'
+import { emitBookingUpdate } from '../sockets/socket.service'
 
 function assertBookingAccess(
   booking: { customerId: unknown; workerId: unknown },
@@ -69,6 +70,17 @@ export async function verifyPayment(
   payment.providerPaymentId = input.paymentId
   payment.providerSignature = input.signature
   await payment.save()
+
+  const booking = await BookingModel.findById(payment.bookingId).lean()
+  if (booking) {
+    emitBookingUpdate({
+      bookingId: booking._id.toString(),
+      customerId: booking.customerId.toString(),
+      workerId: booking.workerId.toString(),
+      status: booking.status,
+      booking: { ...booking, paymentStatus: payment.status },
+    })
+  }
 
   await createNotification({
     userId: payment.workerId,

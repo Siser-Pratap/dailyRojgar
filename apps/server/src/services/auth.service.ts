@@ -4,7 +4,12 @@ import crypto from 'crypto'
 import { env } from '../config/env'
 import { getRedisClient } from '../config/redis'
 import { ApiError } from '../utils/ApiError'
-import { OTP_TTL_SECONDS, PASSWORD_SALT_ROUNDS } from '../config/constants'
+import {
+  OTP_LOCK_SECONDS,
+  OTP_MAX_ATTEMPTS,
+  OTP_TTL_SECONDS,
+  PASSWORD_SALT_ROUNDS,
+} from '../config/constants'
 import {
   createUser,
   findUserByEmail,
@@ -41,7 +46,7 @@ interface ResetPasswordInput {
 }
 
 function generateOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000))
+  return String(crypto.randomInt(100000, 1000000))
 }
 
 function parseDurationToSeconds(value: string): number {
@@ -156,9 +161,19 @@ export async function refreshAccessToken(input: RefreshInput) {
   return { user, tokens }
 }
 
-export async function logoutUser(userId: string) {
+export async function logoutUser(userId: string, accessToken?: string) {
   const redis = getRedisClient()
-  await redis.del(`refresh:${userId}`)
+  const operations: Array<Promise<unknown>> = [redis.del(`refresh:${userId}`)]
+
+  if (accessToken) {
+    const decoded = jwt.decode(accessToken) as { exp?: number } | null
+    const ttl = decoded?.exp ? decoded.exp - Math.floor(Date.now() / 1000) : 0
+    if (ttl > 0) {
+      operations.push(redis.set(`blacklist:${accessToken}`, '1', 'EX', ttl))
+    }
+  }
+
+  await Promise.all(operations)
 }
 
 export async function resendOtp(phone: string) {
@@ -167,7 +182,11 @@ export async function resendOtp(phone: string) {
 
   const otp = generateOtp()
   const redis = getRedisClient()
-  await redis.set(`otp:${phone}`, otp, 'EX', OTP_TTL_SECONDS)
+  await Promise.all([
+    redis.set(`otp:${phone}`, otp, 'EX', OTP_TTL_SECONDS),
+    redis.del(`otp:attempts:${phone}`),
+    redis.del(`otp:lock:${phone}`),
+  ])
 
   return {
     phone,
@@ -179,8 +198,21 @@ export async function resendOtp(phone: string) {
 
 export async function verifyOtp(input: VerifyOtpInput) {
   const redis = getRedisClient()
+  const lockKey = `otp:lock:${input.phone}`
+  const isLocked = await redis.get(lockKey)
+  if (isLocked) {
+    throw ApiError.tooManyRequests('Too many failed OTP attempts. Please try again later')
+  }
+
   const storedOtp = await redis.get(`otp:${input.phone}`)
   if (!storedOtp || storedOtp !== input.otp) {
+    const attempts = await redis.incr(`otp:attempts:${input.phone}`)
+    await redis.expire(`otp:attempts:${input.phone}`, OTP_TTL_SECONDS)
+    if (attempts >= OTP_MAX_ATTEMPTS) {
+      await redis.set(lockKey, '1', 'EX', OTP_LOCK_SECONDS)
+      await redis.del(`otp:${input.phone}`)
+      throw ApiError.tooManyRequests('Too many failed OTP attempts. Please try again later')
+    }
     throw ApiError.badRequest('Invalid or expired OTP', 'OTP_INVALID')
   }
 
@@ -191,7 +223,7 @@ export async function verifyOtp(input: VerifyOtpInput) {
   ).lean()
   if (!user) throw ApiError.notFound('User')
 
-  await redis.del(`otp:${input.phone}`)
+  await Promise.all([redis.del(`otp:${input.phone}`), redis.del(`otp:attempts:${input.phone}`)])
   return { user: { ...user, password: undefined } }
 }
 

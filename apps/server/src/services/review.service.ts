@@ -4,6 +4,7 @@ import { ReviewModel } from '../models/Review.model'
 import { WorkerProfileModel } from '../models/WorkerProfile.model'
 import { ApiError } from '../utils/ApiError'
 import { createNotification } from './notification.service'
+import { emitBookingUpdate } from '../sockets/socket.service'
 
 async function recalculateWorkerRating(workerId: string) {
   const stats = await ReviewModel.aggregate([
@@ -35,6 +36,13 @@ export async function createReview(
     comment: input.comment,
   })
   await recalculateWorkerRating(String(booking.workerId))
+  emitBookingUpdate({
+    bookingId: booking._id.toString(),
+    customerId: booking.customerId.toString(),
+    workerId: booking.workerId.toString(),
+    status: booking.status,
+    booking: { ...booking, reviewId: review._id.toString() },
+  })
   await createNotification({
     userId: booking.workerId,
     title: 'New review received',

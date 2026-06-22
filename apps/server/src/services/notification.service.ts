@@ -1,6 +1,7 @@
 import { Types } from 'mongoose'
 import { NotificationModel } from '../models/Notification.model'
 import { parsePagination } from '../utils/pagination'
+import { emitNewNotification } from '../sockets/socket.service'
 
 export async function createNotification(input: {
   userId: string | Types.ObjectId
@@ -9,13 +10,16 @@ export async function createNotification(input: {
   type?: 'booking' | 'payment' | 'review' | 'system'
   data?: Record<string, unknown>
 }) {
-  return NotificationModel.create({
+  const notification = await NotificationModel.create({
     userId: input.userId,
     title: input.title,
     message: input.message,
     type: input.type ?? 'system',
     data: input.data ?? {},
   })
+
+  emitNewNotification(input.userId.toString(), notification.toObject())
+  return notification
 }
 
 export async function listMyNotifications(

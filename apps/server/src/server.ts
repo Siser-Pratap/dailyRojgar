@@ -4,6 +4,7 @@ import { createApp } from './app'
 import { connectDatabase, disconnectDatabase } from './config/database'
 import { connectRedis, disconnectRedis } from './config/redis'
 import { logger } from './utils/logger'
+import { initSockets } from './sockets'
 
 async function bootstrap(): Promise<void> {
   // Connect to databases
@@ -13,8 +14,8 @@ async function bootstrap(): Promise<void> {
   const app = createApp()
   const server = http.createServer(app)
 
-  // ─── Socket.io (wired in Phase 6) ────────────────────────────────────────
-  // const io = initSockets(server)
+  // ─── Socket.io ───────────────────────────────────────────────────────────
+  initSockets(server)
 
   server.listen(env.PORT, () => {
     logger.info(`Server running`, {
