@@ -14,7 +14,8 @@ export const SearchController = {
       minRating: req.query.minRating ? Number(req.query.minRating) : undefined,
       maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
       availability: req.query.availability ? req.query.availability === 'true' : undefined,
-      sortBy: (req.query.sortBy as 'rating' | 'price' | 'distance' | 'reviews') || 'rating',
+      sortBy:
+        (req.query.sortBy as 'rating' | 'price' | 'distance' | 'reviews' | 'smart') || 'rating',
       page: req.query.page ? Number(req.query.page) : 1,
       limit: req.query.limit ? Number(req.query.limit) : 20,
     })

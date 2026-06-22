@@ -9,6 +9,7 @@ import paymentRoutes from './payments.routes'
 import reviewRoutes from './reviews.routes'
 import notificationRoutes from './notifications.routes'
 import adminRoutes from './admin.routes'
+import aiRoutes from './ai.routes'
 
 const router = Router()
 
@@ -45,5 +46,6 @@ router.use('/payments', paymentRoutes)
 router.use('/reviews', reviewRoutes)
 router.use('/notifications', notificationRoutes)
 router.use('/admin', adminRoutes)
+router.use('/ai', aiRoutes)
 
 export default router

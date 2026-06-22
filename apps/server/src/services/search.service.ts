@@ -10,7 +10,7 @@ interface SearchWorkersOptions {
   minRating?: number
   maxPrice?: number
   availability?: boolean
-  sortBy?: 'rating' | 'price' | 'distance' | 'reviews'
+  sortBy?: 'rating' | 'price' | 'distance' | 'reviews' | 'smart'
   page: number
   limit: number
 }
@@ -67,6 +67,14 @@ export async function searchWorkers(options: SearchWorkersOptions) {
     return {
       ...item,
       distance: distance !== undefined ? Number(distance.toFixed(2)) : null,
+      smartMatchScore: Number(
+        (
+          (distance !== undefined ? 1 / Math.max(distance, 0.5) : 0.5) * 0.3 +
+          ((item.rating?.average ?? 0) / 5) * 0.35 +
+          Math.min((item.totalJobs ?? 0) / 100, 1) * 0.2 +
+          (item.isAvailable ? 1 : 0) * 0.15
+        ).toFixed(4),
+      ),
     }
   })
 
@@ -83,6 +91,10 @@ export async function searchWorkers(options: SearchWorkersOptions) {
 
     if (sortBy === 'reviews') {
       return (b.rating?.totalReviews ?? 0) - (a.rating?.totalReviews ?? 0)
+    }
+
+    if (sortBy === 'smart') {
+      return (b.smartMatchScore ?? 0) - (a.smartMatchScore ?? 0)
     }
 
     return (b.rating?.average ?? 0) - (a.rating?.average ?? 0)

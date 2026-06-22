@@ -1,5 +1,6 @@
 import { PageShell, StateShowcase, WorkerCard } from '@/features/phase8/components'
 import { serviceCategories, workers } from '@/features/phase8/mockData'
+import { SmartMatchingPanel } from '@/features/ai/components'
 
 export default function SearchPage() {
   return (
@@ -64,6 +65,9 @@ export default function SearchPage() {
             <div className="mt-4 flex h-56 items-center justify-center rounded-lg bg-primary-50 text-primary-800">
               Nearby worker pins preview
             </div>
+          </div>
+          <div className="mt-6">
+            <SmartMatchingPanel />
           </div>
           <div className="mt-6 flex justify-center gap-2">
             <button className="btn-outline btn-sm">Previous</button>
