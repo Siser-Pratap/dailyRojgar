@@ -42,7 +42,16 @@ export function createApp(): Application {
   )
 
   // ─── Body parsing ─────────────────────────────────────────────────────────
-  app.use(express.json({ limit: '10kb' }))
+  app.use(
+    express.json({
+      limit: '10kb',
+      verify: (req, _res, buf) => {
+        if (req.url?.startsWith('/api/payments/webhook')) {
+          ;(req as Request & { rawBody?: string }).rawBody = buf.toString('utf8')
+        }
+      },
+    }),
+  )
   app.use(express.urlencoded({ extended: true, limit: '10kb' }))
   app.use(cookieParser())
 

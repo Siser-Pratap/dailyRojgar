@@ -9,6 +9,14 @@ export type BookingStatus =
   | 'cancelled'
   | 'disputed'
 
+export type BookingPaymentStatus =
+  | 'unpaid'
+  | 'created'
+  | 'paid'
+  | 'failed'
+  | 'refund_initiated'
+  | 'refunded'
+
 export interface BookingDocument {
   bookingNumber: string
   customerId: Types.ObjectId
@@ -31,6 +39,8 @@ export interface BookingDocument {
   amount: number
   platformFee: number
   totalAmount: number
+  paymentStatus: BookingPaymentStatus
+  paymentId?: Types.ObjectId
   status: BookingStatus
   statusHistory: Array<{ status: BookingStatus; by: Types.ObjectId; at: Date; reason?: string }>
   dispute?: { reason: string; raisedAt: Date; status: 'open' | 'resolved' | 'rejected' }
@@ -62,6 +72,13 @@ const bookingSchema = new Schema<BookingDocument>(
     amount: { type: Number, required: true, min: 0 },
     platformFee: { type: Number, required: true, min: 0 },
     totalAmount: { type: Number, required: true, min: 0 },
+    paymentStatus: {
+      type: String,
+      enum: ['unpaid', 'created', 'paid', 'failed', 'refund_initiated', 'refunded'],
+      default: 'unpaid',
+      index: true,
+    },
+    paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
     status: {
       type: String,
       enum: [

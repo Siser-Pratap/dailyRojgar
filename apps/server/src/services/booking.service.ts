@@ -100,6 +100,7 @@ export async function createBooking(
     amount: input.amount,
     platformFee,
     totalAmount,
+    paymentStatus: 'unpaid',
     statusHistory: [{ status: 'pending', by: new Types.ObjectId(customerId), at: new Date() }],
   })
 
