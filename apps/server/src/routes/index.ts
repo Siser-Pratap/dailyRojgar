@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import mongoose from 'mongoose'
 import { getRedisClient } from '../config/redis'
 import authRoutes from './auth.routes'
+import searchRoutes from './search.routes'
 
 const router = Router()
 
@@ -31,11 +32,11 @@ router.get('/health', async (_req: Request, res: Response) => {
 
 // ─── Domain routes ──────────────────────────────────────────────────────────
 router.use('/auth', authRoutes)
+router.use('/search', searchRoutes)
 // router.use('/workers', workerRoutes)
 // router.use('/bookings', bookingRoutes)
 // router.use('/payments', paymentRoutes)
 // router.use('/reviews', reviewRoutes)
-// router.use('/search', searchRoutes)
 // router.use('/notifications', notificationRoutes)
 // router.use('/admin', adminRoutes)
 
