@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(npm create *)",
-      "Bash(curl -s http://localhost:3333)"
-    ]
+      "Bash(curl -s http://localhost:3333)",
+      "Bash(mkdir -p /Users/siserpratap/Personal/dailyRojgar/.husky)",
+      "Bash(chmod +x /Users/siserpratap/Personal/dailyRojgar/.husky/pre-commit /Users/siserpratap/Personal/dailyRojgar/.husky/commit-msg)"
+    ],
+    "additionalDirectories": ["/Users/siserpratap/Personal/dailyRojgar"]
   }
 }

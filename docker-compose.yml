@@ -1,0 +1,116 @@
+version: '3.9'
+
+services:
+  # ─── Frontend ───────────────────────────────────────────────────────────────
+  client:
+    build:
+      context: .
+      dockerfile: docker/client.Dockerfile
+    container_name: dr_client
+    ports:
+      - '3000:3000'
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+      - VITE_SOCKET_URL=http://localhost:5000
+    volumes:
+      - ./apps/client:/app/apps/client
+      - /app/apps/client/node_modules
+    depends_on:
+      - server
+    networks:
+      - dr_net
+
+  # ─── Backend ─────────────────────────────────────────────────────────────────
+  server:
+    build:
+      context: .
+      dockerfile: docker/server.Dockerfile
+    container_name: dr_server
+    ports:
+      - '5000:5000'
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongo:27017/dailyrojgar
+      - REDIS_URL=redis://redis:6379
+      - CLIENT_URL=http://localhost:3000
+      - JWT_SECRET=${JWT_SECRET:-change_me_in_production_min_32_chars}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change_me_in_production_min_32_chars_refresh}
+      - JWT_EXPIRES_IN=15m
+      - JWT_REFRESH_EXPIRES_IN=7d
+    volumes:
+      - ./apps/server:/app/apps/server
+      - /app/apps/server/node_modules
+      - ./apps/server/logs:/app/apps/server/logs
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dr_net
+    restart: unless-stopped
+
+  # ─── MongoDB ─────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: dr_mongo
+    ports:
+      - '27017:27017'
+    environment:
+      - MONGO_INITDB_DATABASE=dailyrojgar
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
+    networks:
+      - dr_net
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: dr_redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - dr_net
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Mongo Express (dev only DB UI) ──────────────────────────────────────────
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: dr_mongo_express
+    ports:
+      - '8081:8081'
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=pass
+    depends_on:
+      - mongo
+    networks:
+      - dr_net
+    profiles:
+      - dev  # only starts with: docker compose --profile dev up
+
+volumes:
+  mongo_data:
+  redis_data:
+
+networks:
+  dr_net:
+    driver: bridge

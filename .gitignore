@@ -17,6 +17,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Tool caches
+.eslintcache
+.vite/
+coverage/
+
 # Editor directories and files
 .vscode/
 .idea/
