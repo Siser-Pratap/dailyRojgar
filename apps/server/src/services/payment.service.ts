@@ -4,7 +4,7 @@ import { PaymentModel, PaymentStatus } from '../models/Payment.model'
 import { env } from '../config/env'
 import { PLATFORM_FEE_PERCENT } from '../config/constants'
 import { ApiError } from '../utils/ApiError'
-import { createNotification } from './notification.service'
+import { createNotification, dispatchNotificationEvent } from './notification.service'
 import { emitBookingUpdate } from '../sockets/socket.service'
 import { createRazorpayOrder, createRazorpayRefund } from './razorpay.service'
 import { queueWorkerPayoutJob } from '../queues/payout.queue'
@@ -158,7 +158,7 @@ async function markPaymentCaptured(input: {
   })
 
   await Promise.all([
-    createNotification({
+    dispatchNotificationEvent('payment.received', {
       userId: payment.workerId,
       title: 'Payment captured',
       message: `Payment received for booking ${payment.bookingId.toString()}`,

@@ -5,7 +5,7 @@ import { PLATFORM_FEE_PERCENT, DISPUTE_WINDOW_AFTER_COMPLETION_HOURS } from '../
 import { generateBookingNumber } from '../utils/bookingNumber'
 import { ApiError } from '../utils/ApiError'
 import { parsePagination } from '../utils/pagination'
-import { createNotification } from './notification.service'
+import { dispatchNotificationEvent, NotificationEvent } from './notification.service'
 import { createChatForBooking } from './chat.service'
 import { emitBookingUpdate } from '../sockets/socket.service'
 
@@ -48,8 +48,16 @@ async function transitionBooking(
     booking: booking.toObject(),
   })
 
-  await createNotification({
-    userId: options.requireWorker ? booking.customerId : booking.workerId,
+  const recipientId = options.requireWorker ? booking.customerId : booking.workerId
+  const eventByStatus: Partial<Record<BookingStatus, NotificationEvent>> = {
+    accepted: 'booking.accepted',
+    rejected: 'booking.rejected',
+    in_progress: 'job.started',
+    completed: 'job.completed',
+  }
+
+  await dispatchNotificationEvent(eventByStatus[nextStatus] ?? 'system.notification', {
+    userId: recipientId,
     title: 'Booking updated',
     message: `Booking ${booking.bookingNumber} is now ${nextStatus.replace('_', ' ')}`,
     type: 'booking',
@@ -118,7 +126,7 @@ export async function createBooking(
     booking: booking.toObject(),
   })
 
-  await createNotification({
+  await dispatchNotificationEvent('booking.created', {
     userId: input.workerId,
     title: 'New booking request',
     message: `You received booking ${booking.bookingNumber}`,
@@ -222,7 +230,7 @@ export async function disputeBooking(bookingId: string, customerId: string, reas
     booking: booking.toObject(),
   })
 
-  await createNotification({
+  await dispatchNotificationEvent('system.notification', {
     userId: booking.workerId,
     title: 'Booking disputed',
     message: `Booking ${booking.bookingNumber} was disputed`,

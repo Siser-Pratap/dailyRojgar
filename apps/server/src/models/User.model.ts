@@ -38,6 +38,10 @@ const userSchema = new Schema(
       type: String,
       default: null,
     },
+    fcmTokens: {
+      type: [String],
+      default: [],
+    },
     isActive: {
       type: Boolean,
       default: true,

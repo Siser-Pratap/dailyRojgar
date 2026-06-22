@@ -10,3 +10,7 @@ export const notificationsQuerySchema = z.object({
 })
 
 export const notificationIdParamSchema = z.object({ id: z.string().min(1) })
+
+export const fcmTokenSchema = z.object({
+  token: z.string().trim().min(16).max(4096),
+})

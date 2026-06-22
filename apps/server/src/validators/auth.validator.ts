@@ -11,6 +11,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().trim().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
+  fcmToken: z.string().trim().min(16).max(4096).optional(),
 })
 
 export const refreshSchema = z.object({

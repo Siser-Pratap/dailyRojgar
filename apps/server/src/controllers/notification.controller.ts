@@ -6,6 +6,7 @@ import {
   listMyNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  registerFcmToken,
 } from '../services/notification.service'
 
 export const NotificationController = {
@@ -26,5 +27,10 @@ export const NotificationController = {
   readOne: asyncHandler(async (req: Request, res: Response) => {
     const result = await markNotificationRead(req.user!.sub, String(req.params.id))
     return ApiResponse.success(res, { message: 'Notification marked read', data: result })
+  }),
+
+  registerFcmToken: asyncHandler(async (req: Request, res: Response) => {
+    const result = await registerFcmToken(req.user!.sub, req.body.token)
+    return ApiResponse.success(res, { message: 'FCM token registered successfully', data: result })
   }),
 }

@@ -5,6 +5,8 @@ import { connectDatabase, disconnectDatabase } from './config/database'
 import { connectRedis, disconnectRedis } from './config/redis'
 import { logger } from './utils/logger'
 import { initSockets } from './sockets'
+import { startQueueWorkers, stopQueueWorkers } from './jobs'
+import { closeQueues } from './queues'
 
 async function bootstrap(): Promise<void> {
   // Connect to databases
@@ -16,6 +18,7 @@ async function bootstrap(): Promise<void> {
 
   // ─── Socket.io ───────────────────────────────────────────────────────────
   initSockets(server)
+  startQueueWorkers()
 
   server.listen(env.PORT, () => {
     logger.info(`Server running`, {
@@ -30,6 +33,8 @@ async function bootstrap(): Promise<void> {
     logger.info(`${signal} received — shutting down gracefully`)
 
     server.close(async () => {
+      await stopQueueWorkers()
+      await closeQueues()
       await disconnectDatabase()
       await disconnectRedis()
       logger.info('Shutdown complete')

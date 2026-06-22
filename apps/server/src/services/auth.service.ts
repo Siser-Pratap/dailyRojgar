@@ -29,6 +29,7 @@ interface RegisterInput {
 interface LoginInput {
   email: string
   password: string
+  fcmToken?: string
 }
 
 interface RefreshInput {
@@ -124,6 +125,10 @@ export async function loginUser(input: LoginInput) {
     'EX',
     parseDurationToSeconds(env.JWT_REFRESH_EXPIRES_IN),
   )
+
+  if (input.fcmToken) {
+    await UserModel.findByIdAndUpdate(user._id, { $addToSet: { fcmTokens: input.fcmToken } })
+  }
 
   return { user: { ...user, password: undefined }, tokens }
 }

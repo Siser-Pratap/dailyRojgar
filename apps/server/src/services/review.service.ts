@@ -3,7 +3,7 @@ import { BookingModel } from '../models/Booking.model'
 import { ReviewModel } from '../models/Review.model'
 import { WorkerProfileModel } from '../models/WorkerProfile.model'
 import { ApiError } from '../utils/ApiError'
-import { createNotification } from './notification.service'
+import { dispatchNotificationEvent } from './notification.service'
 import { emitBookingUpdate } from '../sockets/socket.service'
 
 async function recalculateWorkerRating(workerId: string) {
@@ -43,7 +43,7 @@ export async function createReview(
     status: booking.status,
     booking: { ...booking, reviewId: review._id.toString() },
   })
-  await createNotification({
+  await dispatchNotificationEvent('review.received', {
     userId: booking.workerId,
     title: 'New review received',
     message: `You received a ${input.rating}-star review`,
