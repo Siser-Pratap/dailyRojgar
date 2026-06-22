@@ -7,8 +7,10 @@ import { logger } from './utils/logger'
 import { initSockets } from './sockets'
 import { startQueueWorkers, stopQueueWorkers } from './jobs'
 import { closeQueues } from './queues'
+import { initSentry, captureException } from './config/sentry'
 
 async function bootstrap(): Promise<void> {
+  initSentry()
   // Connect to databases
   await connectDatabase()
   await connectRedis()
@@ -53,6 +55,7 @@ async function bootstrap(): Promise<void> {
 
   process.on('unhandledRejection', (reason) => {
     logger.error('Unhandled promise rejection', { reason })
+    captureException(reason, { extra: { source: 'unhandledRejection' } })
     // Don't crash in development; crash in production to let the process manager restart
     if (env.NODE_ENV === 'production') {
       process.exit(1)
@@ -61,6 +64,7 @@ async function bootstrap(): Promise<void> {
 
   process.on('uncaughtException', (err) => {
     logger.error('Uncaught exception', { error: err.message, stack: err.stack })
+    captureException(err, { extra: { source: 'uncaughtException' } })
     process.exit(1)
   })
 }

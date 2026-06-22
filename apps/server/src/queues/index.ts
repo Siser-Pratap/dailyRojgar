@@ -97,3 +97,42 @@ export async function closeQueues() {
   notificationQueue = null
   payoutQueue = null
 }
+
+export async function getQueueHealth() {
+  const queues = {
+    email: getEmailQueue(),
+    sms: getSmsQueue(),
+    notification: getNotificationQueue(),
+    payout: getPayoutQueue(),
+  }
+
+  const entries = await Promise.all(
+    Object.entries(queues).map(async ([name, queue]) => {
+      try {
+        const counts = await queue.getJobCounts('waiting', 'active', 'delayed', 'failed')
+        const active = counts.active ?? 0
+        const failed = counts.failed ?? 0
+        return [
+          name,
+          {
+            status: failed > 0 ? 'degraded' : 'active',
+            waiting: counts.waiting ?? 0,
+            active,
+            delayed: counts.delayed ?? 0,
+            failed,
+          },
+        ] as const
+      } catch (error) {
+        return [
+          name,
+          {
+            status: 'unavailable',
+            error: error instanceof Error ? error.message : String(error),
+          },
+        ] as const
+      }
+    }),
+  )
+
+  return Object.fromEntries(entries)
+}

@@ -51,6 +51,7 @@ const envSchema = z.object({
 
   // Monitoring
   SENTRY_DSN: z.string().optional(),
+  SLACK_WEBHOOK_URL: z.string().url().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)

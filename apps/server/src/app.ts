@@ -10,6 +10,7 @@ import { env } from './config/env'
 import { generalRateLimiter, authRateLimiter } from './middleware/rateLimit.middleware'
 import { errorMiddleware } from './middleware/error.middleware'
 import { httpLogStream } from './utils/logger'
+import { requestContextMiddleware } from './middleware/observability.middleware'
 import apiRoutes from './routes/index'
 
 const xss = require('xss-clean')
@@ -42,6 +43,7 @@ export function createApp(): Application {
   )
 
   // ─── Body parsing ─────────────────────────────────────────────────────────
+  app.use(requestContextMiddleware)
   app.use(
     express.json({
       limit: '10kb',
@@ -63,7 +65,13 @@ export function createApp(): Application {
   // ─── Compression & logging ────────────────────────────────────────────────
   app.use(compression())
   if (env.NODE_ENV !== 'test') {
-    app.use(morgan('combined', { stream: httpLogStream }))
+    morgan.token('requestId', (req: Request) => req.requestId ?? '-')
+    app.use(
+      morgan(':requestId :method :url :status :response-time ms :remote-addr', {
+        stream: httpLogStream,
+        skip: (req) => req.originalUrl === '/api/health',
+      }),
+    )
   }
 
   // ─── Rate limiting ────────────────────────────────────────────────────────

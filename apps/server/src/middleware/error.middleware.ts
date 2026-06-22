@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { ZodError } from 'zod'
 import { ApiError } from '../utils/ApiError'
 import { logger } from '../utils/logger'
+import { captureException } from '../config/sentry'
 
 export function errorMiddleware(
   err: unknown,
@@ -28,11 +29,20 @@ export function errorMiddleware(
   if (err instanceof ApiError) {
     if (err.statusCode >= 500) {
       logger.error('ApiError 5xx', {
+        requestId: req.requestId,
+        userId: req.user?.sub ?? null,
         message: err.message,
         errorCode: err.errorCode,
         stack: err.stack,
         path: req.path,
         method: req.method,
+      })
+      captureException(err, {
+        requestId: req.requestId,
+        userId: req.user?.sub ?? null,
+        path: req.path,
+        method: req.method,
+        extra: { errorCode: err.errorCode },
       })
     }
 
@@ -47,8 +57,17 @@ export function errorMiddleware(
 
   // ─── Unknown errors ────────────────────────────────────────────────────────
   logger.error('Unhandled error', {
+    requestId: req.requestId,
+    userId: req.user?.sub ?? null,
     error: err instanceof Error ? err.message : String(err),
     stack: err instanceof Error ? err.stack : undefined,
+    path: req.path,
+    method: req.method,
+  })
+
+  captureException(err, {
+    requestId: req.requestId,
+    userId: req.user?.sub ?? null,
     path: req.path,
     method: req.method,
   })

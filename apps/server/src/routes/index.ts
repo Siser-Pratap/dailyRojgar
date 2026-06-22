@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express'
 import mongoose from 'mongoose'
 import { getRedisClient } from '../config/redis'
+import { getMetricsSnapshot } from '../services/metrics.service'
+import { getQueueHealth } from '../queues'
 import authRoutes from './auth.routes'
 import searchRoutes from './search.routes'
 import workerRoutes from './workers.routes'
@@ -26,14 +28,26 @@ router.get('/health', async (_req: Request, res: Response) => {
     redisState = 'disconnected'
   }
 
+  const queues = await getQueueHealth()
+
   res.status(200).json({
     success: true,
     status: 'ok',
     uptime: Math.floor(process.uptime()),
     database: dbState,
     redis: redisState,
+    queues,
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version ?? '0.0.0',
+  })
+})
+
+router.get('/metrics', async (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    metrics: getMetricsSnapshot(),
   })
 })
 

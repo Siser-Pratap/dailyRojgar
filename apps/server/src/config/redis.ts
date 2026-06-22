@@ -1,6 +1,7 @@
 import Redis from 'ioredis'
 import { env } from './env'
 import { logger } from '../utils/logger'
+import { recordRedisGet } from '../services/metrics.service'
 
 let redisClient: Redis | null = null
 
@@ -23,6 +24,13 @@ export function getRedisClient(): Redis {
     redisClient.on('close', () => {
       logger.warn('Redis connection closed')
     })
+
+    const originalGet = redisClient.get.bind(redisClient)
+    redisClient.get = (async (...args: Parameters<Redis['get']>) => {
+      const result = await originalGet(...args)
+      recordRedisGet(result !== null)
+      return result
+    }) as Redis['get']
   }
 
   return redisClient
