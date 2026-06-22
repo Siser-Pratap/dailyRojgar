@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import mongoose from 'mongoose'
 import { getRedisClient } from '../config/redis'
+import authRoutes from './auth.routes'
 
 const router = Router()
 
@@ -28,8 +29,8 @@ router.get('/health', async (_req: Request, res: Response) => {
   })
 })
 
-// ─── Domain routes (wired in Phase 3–5) ──────────────────────────────────────
-// router.use('/auth', authRoutes)
+// ─── Domain routes ──────────────────────────────────────────────────────────
+router.use('/auth', authRoutes)
 // router.use('/workers', workerRoutes)
 // router.use('/bookings', bookingRoutes)
 // router.use('/payments', paymentRoutes)
