@@ -2,6 +2,10 @@ import mongoose, { Schema, Types } from 'mongoose'
 
 export interface WorkerProfileDocument {
   userId: Types.ObjectId
+  verificationStatus: 'draft' | 'under_review' | 'approved' | 'rejected'
+  rejectionReason?: string
+  reviewedAt?: Date
+  reviewedBy?: Types.ObjectId
   categoryId: string
   skills: string[]
   bio?: string
@@ -35,6 +39,15 @@ const workerProfileSchema = new Schema<WorkerProfileDocument>(
       unique: true,
       index: true,
     },
+    verificationStatus: {
+      type: String,
+      enum: ['draft', 'under_review', 'approved', 'rejected'],
+      default: 'draft',
+      index: true,
+    },
+    rejectionReason: { type: String, trim: true, maxlength: 1000 },
+    reviewedAt: Date,
+    reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     categoryId: { type: String, required: true, trim: true, index: true },
     skills: [{ type: String, trim: true, index: true }],
     bio: { type: String, trim: true, maxlength: 1000 },
@@ -73,6 +86,7 @@ const workerProfileSchema = new Schema<WorkerProfileDocument>(
 
 workerProfileSchema.index({ location: '2dsphere' })
 workerProfileSchema.index({ skills: 'text', bio: 'text', categoryId: 'text' })
+workerProfileSchema.index({ verificationStatus: 1, updatedAt: -1 })
 
 export const WorkerProfileModel = mongoose.model<WorkerProfileDocument>(
   'WorkerProfile',

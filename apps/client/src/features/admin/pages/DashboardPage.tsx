@@ -1,18 +1,54 @@
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
 import { DashboardShell, SectionCard, StatCard, StatusBadge } from '@/features/phase8/components'
-import { adminMetrics, payments, workerJobs } from '@/features/phase8/mockData'
+import { payments, workerJobs } from '@/features/phase8/mockData'
 import { formatCurrency } from '@/lib/utils'
+import { fetchAdminDashboard } from '../api'
 
 export default function AdminDashboard() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['admin-dashboard'],
+    queryFn: fetchAdminDashboard,
+  })
+
+  const metrics = [
+    {
+      label: 'Total users',
+      value: data ? String(data.users) : '12,480',
+      change: data ? `+${data.newToday} today` : '+12%',
+    },
+    {
+      label: 'Active workers',
+      value: data ? String(data.activeWorkers) : '4,326',
+      change: data ? 'approved' : '+8%',
+    },
+    {
+      label: 'Bookings today',
+      value: data ? String(data.bookingsToday) : '286',
+      change: data ? 'scheduled' : '+18%',
+    },
+    {
+      label: 'Revenue today',
+      value: data ? formatCurrency(data.revenueToday) : '₹8.4L',
+      change: data ? 'captured' : '+15%',
+    },
+  ]
+
   return (
     <DashboardShell role="Admin" title="Metrics overview">
       <div className="grid gap-6">
+        {isError && (
+          <div className="rounded-lg bg-yellow-50 p-3 text-sm text-yellow-700">
+            Live admin metrics unavailable; showing design fallback.
+          </div>
+        )}
         <div className="grid gap-4 md:grid-cols-4">
-          {adminMetrics.map((metric) => (
+          {metrics.map((metric) => (
             <StatCard key={metric.label} {...metric} />
           ))}
         </div>
+        {isLoading && <div className="card h-24 animate-pulse bg-gray-100" />}
         <div className="grid gap-6 xl:grid-cols-2">
           <SectionCard
             title="Worker verification queue"
@@ -38,11 +74,13 @@ export default function AdminDashboard() {
             </div>
           </SectionCard>
           <SectionCard title="Recent disputes">
-            <div className="grid gap-3">
-              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                <p className="font-semibold text-gray-950">DR-2026-000128</p>
-                <p className="text-sm text-yellow-700">Customer reported delayed arrival.</p>
-              </div>
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+              <p className="font-semibold text-gray-950">
+                Pending disputes: {data?.pendingDisputes ?? 1}
+              </p>
+              <p className="text-sm text-yellow-700">
+                Review booking, chat history, and payment before resolving.
+              </p>
             </div>
           </SectionCard>
         </div>

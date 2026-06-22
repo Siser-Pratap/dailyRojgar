@@ -3,6 +3,22 @@ import { UserModel } from '../models/User.model'
 import { BookingModel } from '../models/Booking.model'
 import { ApiError } from '../utils/ApiError'
 import { parsePagination } from '../utils/pagination'
+import { WORKER_VERIFICATION_DOCS } from '../config/constants'
+
+function getVerificationStatusAfterDocs(
+  documents: Array<{ type: string; status: 'pending' | 'approved' | 'rejected' }>,
+  currentStatus?: string,
+) {
+  if (currentStatus === 'approved') return 'approved'
+  if (documents.some((document) => document.status === 'rejected')) return 'rejected'
+
+  const submittedRequiredDocs = new Set(documents.map((document) => document.type))
+  const hasAllRequiredDocs = WORKER_VERIFICATION_DOCS.every((docType) =>
+    submittedRequiredDocs.has(docType),
+  )
+
+  return hasAllRequiredDocs ? 'under_review' : 'draft'
+}
 
 export async function listWorkers(query: {
   q?: string
@@ -87,6 +103,20 @@ export async function updateAvailability(userId: string, isAvailable: boolean) {
     { new: true },
   ).lean()
   if (!profile) throw ApiError.notFound('Worker profile')
+
+  const verificationStatus = getVerificationStatusAfterDocs(
+    profile.documents as Array<{ type: string; status: 'pending' | 'approved' | 'rejected' }>,
+    profile.verificationStatus,
+  )
+
+  if (verificationStatus !== profile.verificationStatus) {
+    return WorkerProfileModel.findOneAndUpdate(
+      { userId },
+      { $set: { verificationStatus, rejectionReason: undefined } },
+      { new: true },
+    ).lean()
+  }
+
   return profile
 }
 
