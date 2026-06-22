@@ -5,6 +5,8 @@ import { useAuthStore } from '@/app/store'
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
 const HomePage = lazy(() => import('@/features/landing/pages/HomePage'))
+const ServicesPage = lazy(() => import('@/features/landing/pages/ServicesPage'))
+const AboutPage = lazy(() => import('@/features/landing/pages/AboutPage'))
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'))
 const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'))
 
@@ -23,6 +25,7 @@ const WorkerJobs = lazy(() => import('@/features/worker/pages/JobsPage'))
 const WorkerJobDetail = lazy(() => import('@/features/worker/pages/JobDetailPage'))
 const WorkerEarnings = lazy(() => import('@/features/worker/pages/EarningsPage'))
 const WorkerAvailability = lazy(() => import('@/features/worker/pages/AvailabilityPage'))
+const WorkerChat = lazy(() => import('@/features/chat/pages/ChatPage'))
 
 const AdminDashboard = lazy(() => import('@/features/admin/pages/DashboardPage'))
 const AdminUsers = lazy(() => import('@/features/admin/pages/UsersPage'))
@@ -68,6 +71,8 @@ function PageLoader() {
 const router = createBrowserRouter([
   // Public
   { path: ROUTES.HOME, element: <HomePage /> },
+  { path: ROUTES.SERVICES, element: <ServicesPage /> },
+  { path: ROUTES.ABOUT, element: <AboutPage /> },
   { path: ROUTES.LOGIN, element: <LoginPage /> },
   { path: ROUTES.REGISTER, element: <RegisterPage /> },
   { path: ROUTES.WORKER_PROFILE, element: <WorkerPublicProfile /> },
@@ -184,6 +189,14 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth role="worker">
         <WorkerAvailability />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: ROUTES.WORKER_CHAT,
+    element: (
+      <RequireAuth role="worker">
+        <WorkerChat />
       </RequireAuth>
     ),
   },
