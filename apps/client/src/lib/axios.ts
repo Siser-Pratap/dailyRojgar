@@ -45,8 +45,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const requestUrl = originalRequest.url ?? ''
+    const isAuthEndpoint =
+      /\/auth\/(login|register|refresh|forgot-password|reset-password|verify-otp|resend-otp)/.test(
+        requestUrl,
+      )
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
@@ -62,11 +67,22 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, null, {
-          withCredentials: true,
-        })
-        const newToken: string = data.data.accessToken
+        const refreshToken = localStorage.getItem('refreshToken')
+        if (!refreshToken) {
+          throw new Error('Missing refresh token')
+        }
+
+        const { data } = await axios.post(
+          `${BASE_URL}/auth/refresh`,
+          { refreshToken },
+          {
+            withCredentials: true,
+          },
+        )
+        const newToken: string = data.data.tokens.accessToken
+        const newRefreshToken: string = data.data.tokens.refreshToken
         localStorage.setItem('accessToken', newToken)
+        localStorage.setItem('refreshToken', newRefreshToken)
         apiClient.defaults.headers.common.Authorization = `Bearer ${newToken}`
         processQueue(null, newToken)
         originalRequest.headers.Authorization = `Bearer ${newToken}`
@@ -74,7 +90,10 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError as AxiosError, null)
         localStorage.removeItem('accessToken')
-        window.location.href = '/login'
+        localStorage.removeItem('refreshToken')
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login'
+        }
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

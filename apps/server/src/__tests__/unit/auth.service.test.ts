@@ -53,6 +53,12 @@ describe('auth service', () => {
     expect(createUser).toHaveBeenCalledWith(
       expect.objectContaining({ password: 'hashed-password' }),
     )
+    expect(redis.set).toHaveBeenCalledWith(
+      'refresh:user-1',
+      'refresh-token',
+      'EX',
+      expect.any(Number),
+    )
     expect(result.tokens).toEqual({ accessToken: 'access-token', refreshToken: 'refresh-token' })
   })
 

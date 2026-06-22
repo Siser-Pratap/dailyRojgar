@@ -98,6 +98,14 @@ export async function registerUser(input: RegisterInput) {
   const userData = user.toJSON()
   const tokens = signTokens(userData._id.toString(), userData.role)
 
+  const redis = getRedisClient()
+  await redis.set(
+    `refresh:${userData._id.toString()}`,
+    tokens.refreshToken,
+    'EX',
+    parseDurationToSeconds(env.JWT_REFRESH_EXPIRES_IN),
+  )
+
   return { user: userData, tokens }
 }
 

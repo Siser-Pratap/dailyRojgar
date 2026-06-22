@@ -9,15 +9,20 @@ module.exports = {
     '^@daily-rojgar/shared-types$': '<rootDir>/../../packages/shared-types/src',
     '^@daily-rojgar/shared-utils$': '<rootDir>/../../packages/shared-utils/src',
   },
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/server.ts',
-    '!src/__tests__/**',
-  ],
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/server.ts', '!src/__tests__/**'],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],
   setupFiles: ['<rootDir>/src/__tests__/setupEnv.ts'],
   setupFilesAfterEnv: [],
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        diagnostics: {
+          ignoreCodes: [151002],
+        },
+      },
+    ],
+  },
   testTimeout: 10000,
 }
