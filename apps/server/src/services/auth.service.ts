@@ -1,14 +1,17 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 import { env } from '../config/env'
 import { getRedisClient } from '../config/redis'
 import { ApiError } from '../utils/ApiError'
+import { OTP_TTL_SECONDS, PASSWORD_SALT_ROUNDS } from '../config/constants'
 import {
   createUser,
   findUserByEmail,
   findUserById,
   findUserByPhone,
 } from '../repositories/user.repository'
+import { UserModel } from '../models/User.model'
 
 interface RegisterInput {
   name: string
@@ -25,6 +28,20 @@ interface LoginInput {
 
 interface RefreshInput {
   refreshToken: string
+}
+
+interface VerifyOtpInput {
+  phone: string
+  otp: string
+}
+
+interface ResetPasswordInput {
+  token: string
+  password: string
+}
+
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000))
 }
 
 function parseDurationToSeconds(value: string): number {
@@ -64,7 +81,7 @@ export async function registerUser(input: RegisterInput) {
     throw ApiError.conflict('Phone already exists', 'USER_003')
   }
 
-  const hashedPassword = await bcrypt.hash(input.password, 12)
+  const hashedPassword = await bcrypt.hash(input.password, PASSWORD_SALT_ROUNDS)
 
   const user = await createUser({
     ...input,
@@ -142,4 +159,66 @@ export async function refreshAccessToken(input: RefreshInput) {
 export async function logoutUser(userId: string) {
   const redis = getRedisClient()
   await redis.del(`refresh:${userId}`)
+}
+
+export async function resendOtp(phone: string) {
+  const user = await findUserByPhone(phone)
+  if (!user) throw ApiError.notFound('User')
+
+  const otp = generateOtp()
+  const redis = getRedisClient()
+  await redis.set(`otp:${phone}`, otp, 'EX', OTP_TTL_SECONDS)
+
+  return {
+    phone,
+    expiresIn: OTP_TTL_SECONDS,
+    // Exposed only to keep local/dev setup testable until SMS integration is enabled.
+    otp: env.NODE_ENV === 'production' ? undefined : otp,
+  }
+}
+
+export async function verifyOtp(input: VerifyOtpInput) {
+  const redis = getRedisClient()
+  const storedOtp = await redis.get(`otp:${input.phone}`)
+  if (!storedOtp || storedOtp !== input.otp) {
+    throw ApiError.badRequest('Invalid or expired OTP', 'OTP_INVALID')
+  }
+
+  const user = await UserModel.findOneAndUpdate(
+    { phone: input.phone },
+    { $set: { isVerified: true } },
+    { new: true },
+  ).lean()
+  if (!user) throw ApiError.notFound('User')
+
+  await redis.del(`otp:${input.phone}`)
+  return { user: { ...user, password: undefined } }
+}
+
+export async function forgotPassword(email: string) {
+  const user = await findUserByEmail(email)
+  // Avoid account enumeration: always return success-shaped response.
+  if (!user) return { email, resetToken: undefined }
+
+  const resetToken = crypto.randomBytes(32).toString('hex')
+  const redis = getRedisClient()
+  await redis.set(`password-reset:${resetToken}`, user._id.toString(), 'EX', 60 * 60)
+
+  return {
+    email,
+    expiresIn: 60 * 60,
+    resetToken: env.NODE_ENV === 'production' ? undefined : resetToken,
+  }
+}
+
+export async function resetPassword(input: ResetPasswordInput) {
+  const redis = getRedisClient()
+  const userId = await redis.get(`password-reset:${input.token}`)
+  if (!userId) throw ApiError.badRequest('Invalid or expired reset token', 'RESET_TOKEN_INVALID')
+
+  const hashedPassword = await bcrypt.hash(input.password, PASSWORD_SALT_ROUNDS)
+  const user = await UserModel.findByIdAndUpdate(userId, { $set: { password: hashedPassword } })
+  if (!user) throw ApiError.notFound('User')
+
+  await Promise.all([redis.del(`password-reset:${input.token}`), redis.del(`refresh:${userId}`)])
 }

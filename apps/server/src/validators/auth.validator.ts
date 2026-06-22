@@ -16,3 +16,20 @@ export const loginSchema = z.object({
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
 })
+
+export const phoneSchema = z.object({
+  phone: z.string().trim().min(10).max(15),
+})
+
+export const verifyOtpSchema = phoneSchema.extend({
+  otp: z.string().trim().min(4).max(8),
+})
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email('Invalid email address'),
+})
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+})

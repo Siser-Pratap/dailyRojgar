@@ -1,7 +1,16 @@
 import { Request, Response } from 'express'
 import { ApiResponse } from '../utils/ApiResponse'
 import { asyncHandler } from '../utils/asyncHandler'
-import { loginUser, logoutUser, refreshAccessToken, registerUser } from '../services/auth.service'
+import {
+  forgotPassword,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  registerUser,
+  resendOtp,
+  resetPassword,
+  verifyOtp,
+} from '../services/auth.service'
 
 export const AuthController = {
   register: asyncHandler(async (req: Request, res: Response) => {
@@ -39,6 +48,41 @@ export const AuthController = {
     return ApiResponse.success(res, {
       statusCode: 200,
       message: 'Logout successful',
+    })
+  }),
+
+  verifyOtp: asyncHandler(async (req: Request, res: Response) => {
+    const result = await verifyOtp(req.body)
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: 'OTP verified successfully',
+      data: result,
+    })
+  }),
+
+  resendOtp: asyncHandler(async (req: Request, res: Response) => {
+    const result = await resendOtp(req.body.phone)
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: 'OTP resent successfully',
+      data: result,
+    })
+  }),
+
+  forgotPassword: asyncHandler(async (req: Request, res: Response) => {
+    const result = await forgotPassword(req.body.email)
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: 'Password reset instructions sent successfully',
+      data: result,
+    })
+  }),
+
+  resetPassword: asyncHandler(async (req: Request, res: Response) => {
+    await resetPassword(req.body)
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: 'Password reset successfully',
     })
   }),
 

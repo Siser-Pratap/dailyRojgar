@@ -1,5 +1,5 @@
 import { SERVICE_CATEGORIES } from '../config/constants'
-import { UserModel } from '../models/User.model'
+import { WorkerProfileModel } from '../models/WorkerProfile.model'
 
 interface SearchWorkersOptions {
   q?: string
@@ -30,22 +30,32 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 export async function searchWorkers(options: SearchWorkersOptions) {
   const { q, lat, lng, radius = 10, sortBy = 'rating', page, limit } = options
 
-  const filters: Record<string, unknown> = { role: 'worker' }
+  const filters: Record<string, unknown> = {}
 
   if (q) {
-    filters.$or = [
-      { name: { $regex: q, $options: 'i' } },
-      { email: { $regex: q, $options: 'i' } },
-      { phone: { $regex: q, $options: 'i' } },
-    ]
+    filters.$text = { $search: q }
+  }
+
+  if (options.categoryId) {
+    filters.categoryId = options.categoryId
+  }
+
+  if (options.minRating !== undefined) {
+    filters['rating.average'] = { $gte: options.minRating }
+  }
+
+  if (options.maxPrice !== undefined) {
+    filters.pricePerDay = { $lte: options.maxPrice }
   }
 
   if (options.availability !== undefined) {
-    filters.isActive = options.availability
+    filters.isAvailable = options.availability
   }
 
-  const query = UserModel.find(filters).select('-password').lean()
-  const total = await UserModel.countDocuments(filters)
+  const query = WorkerProfileModel.find(filters)
+    .populate('userId', 'name email phone profileImage address location')
+    .lean()
+  const total = await WorkerProfileModel.countDocuments(filters)
   const items = await query.skip((page - 1) * limit).limit(limit)
 
   const normalized = items.map((item) => {
@@ -68,22 +78,14 @@ export async function searchWorkers(options: SearchWorkersOptions) {
     }
 
     if (sortBy === 'price') {
-      const aPrice = (a as { pricePerDay?: number }).pricePerDay ?? 0
-      const bPrice = (b as { pricePerDay?: number }).pricePerDay ?? 0
-      return aPrice - bPrice
+      return (a.pricePerDay ?? 0) - (b.pricePerDay ?? 0)
     }
 
     if (sortBy === 'reviews') {
-      return (
-        ((b as { rating?: { totalReviews?: number } }).rating?.totalReviews ?? 0) -
-        ((a as { rating?: { totalReviews?: number } }).rating?.totalReviews ?? 0)
-      )
+      return (b.rating?.totalReviews ?? 0) - (a.rating?.totalReviews ?? 0)
     }
 
-    return (
-      ((b as { rating?: { average?: number } }).rating?.average ?? 0) -
-      ((a as { rating?: { average?: number } }).rating?.average ?? 0)
-    )
+    return (b.rating?.average ?? 0) - (a.rating?.average ?? 0)
   })
 
   const filteredByRadius =
