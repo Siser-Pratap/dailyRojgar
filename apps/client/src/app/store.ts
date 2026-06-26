@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface User {
+export interface User {
   _id: string
   name: string
   email: string
