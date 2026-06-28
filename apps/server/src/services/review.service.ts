@@ -54,7 +54,10 @@ export async function createReview(
 }
 
 export async function listWorkerReviews(workerId: string) {
-  return ReviewModel.find({ workerId, isDeleted: false }).sort({ createdAt: -1 }).lean()
+  return ReviewModel.find({ workerId, isDeleted: false })
+    .populate('customerId', 'name profileImage')
+    .sort({ createdAt: -1 })
+    .lean()
 }
 
 export async function replyToReview(workerId: string, reviewId: string, text: string) {

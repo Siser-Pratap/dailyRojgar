@@ -5,7 +5,8 @@ import { formatCurrency } from '@/lib/utils'
 import type { SearchWorker } from '../api'
 
 export function WorkerCard({ worker }: { worker: SearchWorker }) {
-  const profileHref = buildRoute(ROUTES.WORKER_PROFILE, { id: worker._id })
+  // The public profile route is keyed by the worker's *user* id.
+  const profileHref = buildRoute(ROUTES.WORKER_PROFILE, { id: worker.userId._id })
 
   return (
     <Card className="flex flex-col gap-4 p-5">
