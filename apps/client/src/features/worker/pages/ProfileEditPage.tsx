@@ -4,6 +4,7 @@ import { DashboardLayout } from '@/components/layout'
 import { Button, Card, Input, Select, Textarea, PageSpinner } from '@/components/ui'
 import { zodResolver } from '@/lib/zodResolver'
 import { useAuth } from '@/hooks/useAuth'
+import { AiProfileAssistant } from '@/features/ai/AiProfileAssistant'
 import { useUpsertWorkerProfile, useWorkerProfile } from '../hooks'
 
 const SERVICE_CATEGORIES = [
@@ -40,6 +41,8 @@ export default function WorkerProfileEdit() {
   const {
     register,
     handleSubmit,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -82,48 +85,67 @@ export default function WorkerProfileEdit() {
         </p>
       </div>
 
-      <Card className="max-w-2xl p-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Category"
-              placeholder="Select a category"
-              options={categoryOptions}
-              error={errors.categoryId?.message}
-              {...register('categoryId')}
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <Card className="p-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" noValidate>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Select
+                label="Category"
+                placeholder="Select a category"
+                options={categoryOptions}
+                error={errors.categoryId?.message}
+                {...register('categoryId')}
+              />
+              <Input
+                label="Price per day (₹)"
+                type="number"
+                min={1}
+                error={errors.pricePerDay?.message}
+                {...register('pricePerDay')}
+              />
+            </div>
+            <Input
+              label="Experience (years)"
+              type="number"
+              min={0}
+              error={errors.experienceYears?.message}
+              {...register('experienceYears')}
             />
             <Input
-              label="Price per day (₹)"
-              type="number"
-              min={1}
-              error={errors.pricePerDay?.message}
-              {...register('pricePerDay')}
+              label="Skills (comma separated)"
+              placeholder="Wiring, Fan repair, Switch boards"
+              error={errors.skills?.message}
+              {...register('skills')}
             />
-          </div>
-          <Input
-            label="Experience (years)"
-            type="number"
-            min={0}
-            error={errors.experienceYears?.message}
-            {...register('experienceYears')}
-          />
-          <Input
-            label="Skills (comma separated)"
-            placeholder="Wiring, Fan repair, Switch boards"
-            error={errors.skills?.message}
-            {...register('skills')}
-          />
-          <Textarea
-            label="Bio"
-            placeholder="Describe your experience and services"
-            error={errors.bio?.message}
-            {...register('bio')}
-          />
-          <Button type="submit" className="w-fit" isLoading={upsert.isPending}>
-            Save profile
-          </Button>
-        </form>
-      </Card>
+            <Textarea
+              label="Bio"
+              placeholder="Describe your experience and services"
+              error={errors.bio?.message}
+              {...register('bio')}
+            />
+            <Button type="submit" className="w-fit" isLoading={upsert.isPending}>
+              Save profile
+            </Button>
+          </form>
+        </Card>
+
+        <AiProfileAssistant
+          getValues={() => {
+            const v = getValues()
+            return {
+              categoryId: v.categoryId,
+              pricePerDay: Number(v.pricePerDay) || 0,
+              skills: (v.skills ?? '')
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean),
+              bio: v.bio,
+            }
+          }}
+          onApplyPrice={(p) => setValue('pricePerDay', p, { shouldDirty: true })}
+          onApplyBio={(b) => setValue('bio', b, { shouldDirty: true })}
+        />
+      </div>
     </DashboardLayout>
   )
 }

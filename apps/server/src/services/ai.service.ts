@@ -1,5 +1,6 @@
 import { BookingModel } from '../models/Booking.model'
 import { WorkerProfileModel } from '../models/WorkerProfile.model'
+import { generateWorkerBio, isClaudeEnabled } from './claude.service'
 
 const CATEGORY_BASELINE_PRICE: Record<string, number> = {
   Construction: 900,
@@ -186,7 +187,7 @@ export async function getDynamicPriceRecommendation(input: {
   }
 }
 
-export function getProfileAssistantSuggestions(input: {
+export async function getProfileAssistantSuggestions(input: {
   bio?: string
   skills?: string[]
   categoryId?: string
@@ -233,9 +234,21 @@ export function getProfileAssistantSuggestions(input: {
     })
   }
 
+  // Optional Claude enhancement: a polished bio the worker can adopt. Falls
+  // back to rule-based only (improvedBio omitted) when Claude is unavailable.
+  const improvedBio = await generateWorkerBio({
+    categoryId: input.categoryId,
+    skills: input.skills ?? [],
+    currentBio: input.bio,
+  })
+
   return {
-    assistant: 'rule-based-profile-assistant-v1',
+    assistant: improvedBio
+      ? `claude:${process.env.ANTHROPIC_MODEL ?? 'claude-opus-4-8'}`
+      : 'rule-based-profile-assistant-v1',
+    aiEnabled: isClaudeEnabled(),
     suggestions,
+    improvedBio: improvedBio ?? undefined,
     nextBestAction: suggestions[0]?.title ?? 'Your profile looks ready for customer discovery.',
   }
 }
