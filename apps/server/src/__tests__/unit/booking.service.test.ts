@@ -1,10 +1,12 @@
-import { createBooking } from '../../services/booking.service'
+import { createBooking, getBookingDetail } from '../../services/booking.service'
 import { BookingModel } from '../../models/Booking.model'
 import { WorkerProfileModel } from '../../models/WorkerProfile.model'
 import { createChatForBooking } from '../../services/chat.service'
 import { dispatchNotificationEvent } from '../../services/notification.service'
 
-jest.mock('../../models/Booking.model', () => ({ BookingModel: { create: jest.fn() } }))
+jest.mock('../../models/Booking.model', () => ({
+  BookingModel: { create: jest.fn(), findById: jest.fn() },
+}))
 jest.mock('../../models/WorkerProfile.model', () => ({
   WorkerProfileModel: { findOne: jest.fn() },
 }))
@@ -72,5 +74,47 @@ describe('booking service', () => {
         amount: 1000,
       }),
     ).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  describe('getBookingDetail access check', () => {
+    // The detail query populates customerId/workerId, so ownership must be
+    // compared against the populated object's _id, not the object itself.
+    const mockBooking = (booking: unknown) => {
+      ;(BookingModel.findById as jest.Mock).mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue(booking),
+      })
+    }
+
+    it('allows the owning customer when customerId is populated', async () => {
+      const booking = {
+        _id: 'booking-1',
+        customerId: { _id: customerId, name: 'Asha' },
+        workerId: { _id: workerId, name: 'Ravi' },
+      }
+      mockBooking(booking)
+
+      await expect(getBookingDetail(customerId, 'customer', 'booking-1')).resolves.toEqual(booking)
+    })
+
+    it('forbids an unrelated user', async () => {
+      mockBooking({
+        _id: 'booking-1',
+        customerId: { _id: customerId, name: 'Asha' },
+        workerId: { _id: workerId, name: 'Ravi' },
+      })
+
+      await expect(
+        getBookingDetail('507f1f77bcf86cd799439099', 'customer', 'booking-1'),
+      ).rejects.toMatchObject({ statusCode: 403 })
+    })
+
+    it('throws 404 when the booking is missing', async () => {
+      mockBooking(null)
+
+      await expect(getBookingDetail(customerId, 'customer', 'missing')).rejects.toMatchObject({
+        statusCode: 404,
+      })
+    })
   })
 })

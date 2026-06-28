@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { ROUTES } from '@/constants/routes'
+import { ROUTES, buildRoute } from '@/constants/routes'
 import { PublicLayout } from '@/components/layout'
 import { Avatar, Badge, Button, Card, PageSpinner } from '@/components/ui'
 import { EmptyState, ErrorState } from '@/components/feedback'
@@ -24,7 +24,7 @@ export default function WorkerPublicProfile() {
       navigate(ROUTES.LOGIN, { state: { from: `/workers/${id}` } })
       return
     }
-    navigate(ROUTES.CUSTOMER_BOOKINGS, {
+    navigate(buildRoute(ROUTES.CUSTOMER_BOOK_NEW, { workerId: worker.userId._id }), {
       state: {
         bookWorker: {
           id: worker.userId._id,

@@ -10,6 +10,7 @@ export const ROUTES = {
   // Customer (authenticated)
   CUSTOMER_DASHBOARD: '/customer/dashboard',
   CUSTOMER_SEARCH: '/customer/search',
+  CUSTOMER_BOOK_NEW: '/customer/book/:workerId',
   CUSTOMER_BOOKINGS: '/customer/bookings',
   CUSTOMER_BOOKING_DETAIL: '/customer/bookings/:id',
   CUSTOMER_CHAT: '/customer/chat/:bookingId',

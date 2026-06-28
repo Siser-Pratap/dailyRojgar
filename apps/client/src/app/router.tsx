@@ -14,6 +14,7 @@ const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'))
 
 const CustomerDashboard = lazy(() => import('@/features/customer/pages/DashboardPage'))
 const CustomerSearch = lazy(() => import('@/features/search/pages/SearchPage'))
+const CustomerBookNew = lazy(() => import('@/features/booking/pages/BookingCreatePage'))
 const CustomerBookings = lazy(() => import('@/features/booking/pages/BookingsPage'))
 const CustomerBookingDetail = lazy(() => import('@/features/booking/pages/BookingDetailPage'))
 const CustomerChat = lazy(() => import('@/features/chat/pages/ChatPage'))
@@ -64,6 +65,14 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth role="customer">
         <CustomerSearch />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: ROUTES.CUSTOMER_BOOK_NEW,
+    element: (
+      <RequireAuth role="customer">
+        <CustomerBookNew />
       </RequireAuth>
     ),
   },
