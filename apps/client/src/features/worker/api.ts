@@ -9,6 +9,15 @@ export interface WorkerProfileUser {
   address?: string
 }
 
+export type WorkerDocumentType = 'aadhaar' | 'photo' | 'certificate' | 'other'
+
+export interface WorkerDocument {
+  type: WorkerDocumentType
+  url: string
+  status: 'pending' | 'approved' | 'rejected'
+  uploadedAt: string
+}
+
 /** Full public worker profile as returned by `GET /workers/:id`. */
 export interface WorkerProfile {
   _id: string
@@ -23,6 +32,25 @@ export interface WorkerProfile {
   rating: { average: number; totalReviews: number }
   totalJobs: number
   totalEarnings: number
+  documents: WorkerDocument[]
+}
+
+export interface WorkerStats {
+  totalJobs: number
+  completedJobs: number
+  activeJobs: number
+  totalEarnings: number
+  rating: { average: number; totalReviews: number }
+  isAvailable: boolean
+}
+
+export interface UpsertWorkerProfileInput {
+  categoryId: string
+  skills: string[]
+  bio?: string
+  experienceYears?: number
+  pricePerDay: number
+  location?: { lat: number; lng: number }
 }
 
 export interface WorkerReview {
@@ -48,5 +76,32 @@ export async function getWorkerProfile(id: string): Promise<WorkerProfile> {
 
 export async function getWorkerReviews(workerId: string): Promise<WorkerReview[]> {
   const { data } = await apiClient.get<ApiEnvelope<WorkerReview[]>>(`/reviews/worker/${workerId}`)
+  return data.data
+}
+
+// ─── Worker self-service ──────────────────────────────────────────────────────
+
+export async function getWorkerStats(): Promise<WorkerStats> {
+  const { data } = await apiClient.get<ApiEnvelope<WorkerStats>>('/workers/me/stats')
+  return data.data
+}
+
+export async function upsertWorkerProfile(input: UpsertWorkerProfileInput): Promise<WorkerProfile> {
+  const { data } = await apiClient.post<ApiEnvelope<WorkerProfile>>('/workers/profile', input)
+  return data.data
+}
+
+export async function updateAvailability(isAvailable: boolean): Promise<WorkerProfile> {
+  const { data } = await apiClient.patch<ApiEnvelope<WorkerProfile>>('/workers/availability', {
+    isAvailable,
+  })
+  return data.data
+}
+
+export async function addWorkerDocument(input: {
+  type: WorkerDocumentType
+  url: string
+}): Promise<WorkerProfile> {
+  const { data } = await apiClient.post<ApiEnvelope<WorkerProfile>>('/workers/documents', input)
   return data.data
 }
