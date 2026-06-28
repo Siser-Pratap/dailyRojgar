@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUIStore } from '@/app/store'
 import { useLogout } from '@/features/auth/hooks'
 import { Avatar, Button } from '@/components/ui'
+import { NotificationBell } from '@/features/notification/components/NotificationBell'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/features/auth/api'
 
@@ -112,6 +113,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
               ☰
             </button>
             <div className="flex flex-1 items-center justify-end gap-3">
+              <NotificationBell />
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-950">{user.name}</p>
                 <p className="text-xs text-gray-500">{roleLabel[role]}</p>

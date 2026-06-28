@@ -10,6 +10,7 @@ import {
 import { NotificationModel } from '../models/Notification.model'
 import { UserModel } from '../models/User.model'
 import { parsePagination } from '../utils/pagination'
+import { renderEmailTemplate } from '../utils/emailTemplates'
 import { logger } from '../utils/logger'
 
 export type NotificationEvent =
@@ -83,11 +84,21 @@ export async function dispatchNotificationEvent(
   }
 
   if (channels.email) {
+    // Fall back to a branded HTML template when the caller doesn't supply one.
+    const template =
+      input.html && input.emailSubject
+        ? { subject: input.emailSubject, html: input.html }
+        : renderEmailTemplate({
+            event,
+            title: input.title,
+            message: input.message,
+            data: input.data,
+          })
     const emailJob: EmailJob = {
       userId,
-      subject: input.emailSubject ?? input.title,
+      subject: input.emailSubject ?? template.subject,
       text: input.message,
-      html: input.html,
+      html: input.html ?? template.html,
       data: { event, ...(input.data ?? {}) },
     }
     queuedJobs.push(
