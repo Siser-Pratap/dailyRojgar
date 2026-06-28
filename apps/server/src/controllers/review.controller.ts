@@ -4,6 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler'
 import {
   createReview,
   deleteReview,
+  getReviewByBooking,
   listWorkerReviews,
   replyToReview,
 } from '../services/review.service'
@@ -17,6 +18,11 @@ export const ReviewController = {
   workerReviews: asyncHandler(async (req: Request, res: Response) => {
     const result = await listWorkerReviews(String(req.params.workerId))
     return ApiResponse.success(res, { message: 'Reviews fetched successfully', data: result })
+  }),
+
+  bookingReview: asyncHandler(async (req: Request, res: Response) => {
+    const result = await getReviewByBooking(String(req.params.bookingId), req.user!.sub)
+    return ApiResponse.success(res, { message: 'Review fetched successfully', data: result })
   }),
 
   reply: asyncHandler(async (req: Request, res: Response) => {

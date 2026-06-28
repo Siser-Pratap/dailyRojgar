@@ -3,6 +3,7 @@ import { ReviewController } from '../controllers/review.controller'
 import { authenticate, authorize } from '../middleware/auth.middleware'
 import { validate } from '../middleware/validate.middleware'
 import {
+  bookingReviewParamSchema,
   createReviewSchema,
   replyReviewSchema,
   reviewIdParamSchema,
@@ -22,6 +23,12 @@ router.get(
   '/worker/:workerId',
   validate(workerReviewsParamSchema, 'params'),
   ReviewController.workerReviews,
+)
+router.get(
+  '/booking/:bookingId',
+  authenticate,
+  validate(bookingReviewParamSchema, 'params'),
+  ReviewController.bookingReview,
 )
 router.post(
   '/:id/reply',

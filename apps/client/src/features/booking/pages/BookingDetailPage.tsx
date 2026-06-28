@@ -7,6 +7,8 @@ import { ConfirmDialog, ErrorState } from '@/components/feedback'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useBooking, useCancelBooking } from '../hooks'
 import { StatusTimeline } from '../components/StatusTimeline'
+import { ReviewForm } from '@/features/review/components/ReviewForm'
+import { useBookingReview } from '@/features/review/hooks'
 
 const cancellableStatuses = ['pending', 'accepted']
 
@@ -15,6 +17,7 @@ export default function BookingDetailPage() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const { data: booking, isLoading, isError, refetch } = useBooking(id)
   const cancelMutation = useCancelBooking()
+  const { data: existingReview, isLoading: reviewLoading } = useBookingReview(id)
 
   if (isLoading) {
     return (
@@ -83,6 +86,35 @@ export default function BookingDetailPage() {
             <h2 className="mb-4 text-lg font-bold text-gray-950">Status timeline</h2>
             <StatusTimeline history={booking.statusHistory} />
           </Card>
+
+          {booking.status === 'completed' && (
+            <Card className="p-6">
+              <h2 className="mb-4 text-lg font-bold text-gray-950">Your review</h2>
+              {reviewLoading ? (
+                <p className="text-sm text-gray-500">Loading…</p>
+              ) : existingReview ? (
+                <div>
+                  <p className="text-yellow-500">{'★'.repeat(existingReview.rating)}</p>
+                  {existingReview.comment && (
+                    <p className="mt-1 text-sm text-gray-700">"{existingReview.comment}"</p>
+                  )}
+                  {existingReview.reply?.text && (
+                    <div className="mt-3 rounded-md border-l-2 border-primary-300 bg-gray-50 p-3 text-sm">
+                      <p className="font-medium text-gray-700">{booking.workerId.name} replied</p>
+                      <p className="mt-0.5 text-gray-600">{existingReview.reply.text}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <p className="mb-3 text-sm text-gray-600">
+                    How was your experience with {booking.workerId.name}?
+                  </p>
+                  <ReviewForm bookingId={booking._id} workerId={booking.workerId._id} />
+                </>
+              )}
+            </Card>
+          )}
         </div>
 
         <aside className="grid h-fit gap-4">

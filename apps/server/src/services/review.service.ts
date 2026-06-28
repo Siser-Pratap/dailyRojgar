@@ -60,6 +60,20 @@ export async function listWorkerReviews(workerId: string) {
     .lean()
 }
 
+/** Returns the review for a booking (or null), restricted to its participants. */
+export async function getReviewByBooking(bookingId: string, userId: string) {
+  const review = await ReviewModel.findOne({ bookingId, isDeleted: false })
+    .populate('customerId', 'name profileImage')
+    .lean()
+  if (!review) return null
+
+  const customerId = String((review.customerId as { _id?: unknown })?._id ?? review.customerId)
+  if (customerId !== userId && String(review.workerId) !== userId) {
+    throw ApiError.forbidden('You do not have access to this review')
+  }
+  return review
+}
+
 export async function replyToReview(workerId: string, reviewId: string, text: string) {
   const review = await ReviewModel.findOneAndUpdate(
     { _id: reviewId, workerId, isDeleted: false },
