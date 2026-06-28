@@ -1,47 +1,53 @@
 import { useQuery } from '@tanstack/react-query'
-import { DashboardShell, SectionCard, StatusBadge } from '@/features/phase8/components'
+import { DashboardLayout } from '@/components/layout'
+import { Avatar, Badge, Card, SkeletonGrid } from '@/components/ui'
+import { EmptyState, ErrorState } from '@/components/feedback'
 import { fetchAdminUsers } from '../api'
 
-const fallbackUsers = ['Amit Sharma', 'Priya Nair', 'Ramesh Kumar', 'Meena Devi']
-
 export default function AdminUsers() {
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-users'],
     queryFn: fetchAdminUsers,
   })
-  const users = data?.length
-    ? data
-    : fallbackUsers.map((name, index) => ({
-        _id: name,
-        name,
-        role: index > 1 ? 'worker' : 'customer',
-        isActive: true,
-      }))
+
+  const users = data ?? []
 
   return (
-    <DashboardShell role="Admin" title="User management">
-      <SectionCard title="Users">
-        {isError && (
-          <p className="mb-3 rounded bg-yellow-50 p-3 text-sm text-yellow-700">
-            Using fallback users while API is unavailable.
-          </p>
-        )}
-        {isLoading && <div className="mb-3 h-12 animate-pulse rounded bg-gray-100" />}
-        <div className="grid gap-3">
+    <DashboardLayout>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-950">User management</h1>
+        <p className="mt-1 text-sm text-gray-600">All registered customers, workers, and admins.</p>
+      </div>
+
+      {isLoading ? (
+        <SkeletonGrid count={6} />
+      ) : isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : users.length === 0 ? (
+        <EmptyState icon="👥" title="No users found" />
+      ) : (
+        <Card className="divide-y divide-gray-100 p-0">
           {users.map((user) => (
-            <div
-              key={String(user._id ?? user.name)}
-              className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
-            >
-              <div>
-                <p className="font-semibold text-gray-950">{String(user.name ?? 'Unknown user')}</p>
-                <p className="text-sm text-gray-500">{String(user.role ?? 'customer')}</p>
+            <div key={user._id} className="flex items-center justify-between gap-3 p-4">
+              <div className="flex items-center gap-3">
+                <Avatar name={user.name} size="sm" />
+                <div>
+                  <p className="font-semibold text-gray-950">{user.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {user.email} • {user.phone}
+                  </p>
+                </div>
               </div>
-              <StatusBadge status={user.isActive === false ? 'cancelled' : 'completed'} />
+              <div className="flex items-center gap-2">
+                <Badge variant="gray">{user.role}</Badge>
+                <Badge variant={user.isActive ? 'green' : 'red'}>
+                  {user.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
             </div>
           ))}
-        </div>
-      </SectionCard>
-    </DashboardShell>
+        </Card>
+      )}
+    </DashboardLayout>
   )
 }

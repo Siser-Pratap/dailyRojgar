@@ -1,53 +1,91 @@
-import { useQuery } from '@tanstack/react-query'
-import { DashboardShell, SectionCard, StatusBadge } from '@/features/phase8/components'
-import { payments as fallbackPayments } from '@/features/phase8/mockData'
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { DashboardLayout } from '@/components/layout'
+import { Button, Card, StatusBadge, SkeletonGrid } from '@/components/ui'
+import { ConfirmDialog, EmptyState, ErrorState } from '@/components/feedback'
+import { useToast } from '@/hooks/useToast'
+import { getApiErrorMessage } from '@/lib/apiError'
 import { formatCurrency } from '@/lib/utils'
-import { fetchAdminPayments } from '../api'
-
-type AnyRecord = Record<string, unknown>
+import { fetchAdminPayments, refundPayment, type AdminPayment } from '../api'
 
 export default function AdminPayments() {
-  const { data, isLoading, isError } = useQuery({
+  const queryClient = useQueryClient()
+  const toast = useToast()
+  const [refundTarget, setRefundTarget] = useState<AdminPayment | null>(null)
+
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-payments'],
     queryFn: () => fetchAdminPayments(),
   })
-  const payments: AnyRecord[] = data?.length ? data : (fallbackPayments as unknown as AnyRecord[])
+
+  const refund = useMutation({
+    mutationFn: (paymentId: string) => refundPayment(paymentId, 'Admin-initiated refund'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-payments'] })
+      toast.success('Refund initiated')
+      setRefundTarget(null)
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, 'Refund failed')),
+  })
+
+  const payments = data ?? []
 
   return (
-    <DashboardShell role="Admin" title="Transaction log">
-      <SectionCard title="Payments">
-        {isError && (
-          <p className="mb-3 rounded bg-yellow-50 p-3 text-sm text-yellow-700">
-            Using fallback payments while API is unavailable.
-          </p>
-        )}
-        {isLoading && <div className="mb-3 h-12 animate-pulse rounded bg-gray-100" />}
-        <div className="grid gap-3">
-          {payments.map((payment) => {
-            const id = String(payment._id ?? payment.id)
-            const amount = Number(payment.amount ?? 0)
-            return (
-              <div
-                key={id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 p-4"
-              >
-                <div>
-                  <p className="font-semibold text-gray-950">
-                    {String(payment.providerPaymentId ?? payment.id)}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Worker payout: {formatCurrency(Number(payment.workerPayout ?? 0))}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={String(payment.status ?? 'created')} />
-                  <strong>{formatCurrency(amount)}</strong>
-                </div>
+    <DashboardLayout>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-950">Transaction log</h1>
+        <p className="mt-1 text-sm text-gray-600">Payments, payouts, and refunds.</p>
+      </div>
+
+      {isLoading ? (
+        <SkeletonGrid count={6} />
+      ) : isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : payments.length === 0 ? (
+        <EmptyState icon="💳" title="No payments yet" />
+      ) : (
+        <Card className="divide-y divide-gray-100 p-0">
+          {payments.map((payment) => (
+            <div
+              key={payment._id}
+              className="flex flex-wrap items-center justify-between gap-3 p-4"
+            >
+              <div>
+                <p className="font-semibold text-gray-950">
+                  {payment.providerPaymentId ?? payment._id}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Worker payout: {formatCurrency(payment.workerPayout)}
+                </p>
               </div>
-            )
-          })}
-        </div>
-      </SectionCard>
-    </DashboardShell>
+              <div className="flex items-center gap-3">
+                <StatusBadge status={payment.status} />
+                <span className="font-bold text-gray-950">{formatCurrency(payment.amount)}</span>
+                {payment.status === 'captured' && (
+                  <Button size="sm" variant="outline" onClick={() => setRefundTarget(payment)}>
+                    Refund
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      <ConfirmDialog
+        open={Boolean(refundTarget)}
+        onClose={() => setRefundTarget(null)}
+        title="Issue refund?"
+        description={
+          refundTarget
+            ? `Refund ${formatCurrency(refundTarget.amount)} for this payment? The amount depends on booking status and platform policy.`
+            : ''
+        }
+        confirmLabel="Issue refund"
+        danger
+        isLoading={refund.isPending}
+        onConfirm={() => refundTarget && refund.mutate(refundTarget._id)}
+      />
+    </DashboardLayout>
   )
 }
