@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
-import { Footer, PublicNav, StateShowcase } from '@/features/phase8/components'
-import { serviceCategories } from '@/features/phase8/mockData'
+import { PublicLayout } from '@/components/layout'
+import { serviceCategories } from '../serviceCategories'
 
 const customerSteps = [
   'Search verified workers',
@@ -16,8 +16,7 @@ const workerSteps = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white">
-      <PublicNav />
+    <PublicLayout>
       <main>
         <section className="bg-gradient-to-br from-primary-50 via-white to-gray-50 py-20">
           <div className="container grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
@@ -126,14 +125,8 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
-        <section className="container pb-16">
-          <h2 className="mb-4 text-2xl font-bold text-gray-950">UI states covered</h2>
-          <StateShowcase />
-        </section>
       </main>
-      <Footer />
-    </div>
+    </PublicLayout>
   )
 }
 

@@ -1,9 +1,8 @@
-import { Footer, PublicNav, StateShowcase } from '@/features/phase8/components'
+import { PublicLayout } from '@/components/layout'
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white">
-      <PublicNav />
+    <PublicLayout>
       <main className="container py-12">
         <span className="badge-green">About dailyRojgar</span>
         <h1 className="mt-4 max-w-3xl text-4xl font-bold text-gray-950">
@@ -23,11 +22,7 @@ export default function AboutPage() {
             </div>
           ))}
         </div>
-        <section className="mt-10">
-          <StateShowcase />
-        </section>
       </main>
-      <Footer />
-    </div>
+    </PublicLayout>
   )
 }
