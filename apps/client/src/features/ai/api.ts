@@ -33,7 +33,9 @@ export interface PriceRecommendation {
 
 export interface ProfileSuggestions {
   assistant: string
+  aiEnabled?: boolean
   suggestions: Array<{ type: string; title: string; detail: string }>
+  improvedBio?: string
   nextBestAction: string
 }
 

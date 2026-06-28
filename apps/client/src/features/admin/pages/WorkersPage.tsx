@@ -1,35 +1,59 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ROUTES, buildRoute } from '@/constants/routes'
-import { DashboardShell, SectionCard, StatusBadge } from '@/features/phase8/components'
-import { workers as fallbackWorkers } from '@/features/phase8/mockData'
+import { DashboardLayout } from '@/components/layout'
+import { Card, StatusBadge, SkeletonGrid } from '@/components/ui'
+import { EmptyState, ErrorState } from '@/components/feedback'
 import { fetchAdminWorkers } from '../api'
 
+const statusFilters = [
+  { label: 'Under review', value: 'under_review' },
+  { label: 'Approved', value: 'approved' },
+  { label: 'Rejected', value: 'rejected' },
+  { label: 'All', value: '' },
+]
+
 export default function AdminWorkers() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['admin-workers', 'under_review'],
-    queryFn: () => fetchAdminWorkers('under_review'),
+  const [status, setStatus] = useState('under_review')
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['admin-workers', status],
+    queryFn: () => fetchAdminWorkers(status || undefined),
   })
-  const workers = data?.length
-    ? data
-    : fallbackWorkers.map((worker) => ({
-        _id: worker.id,
-        userId: { _id: worker.id, name: worker.name },
-        categoryId: worker.category,
-        skills: worker.skills,
-        verificationStatus: worker.available ? 'approved' : 'under_review',
-        documents: [],
-      }))
+
+  const workers = data ?? []
 
   return (
-    <DashboardShell role="Admin" title="Worker verification">
-      <SectionCard title="Verification queue">
-        {isError && (
-          <p className="mb-3 rounded bg-yellow-50 p-3 text-sm text-yellow-700">
-            Using fallback workers while API is unavailable.
-          </p>
-        )}
-        {isLoading && <div className="mb-3 h-12 animate-pulse rounded bg-gray-100" />}
+    <DashboardLayout>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-950">Worker verification</h1>
+        <p className="mt-1 text-sm text-gray-600">Review worker profiles and documents.</p>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {statusFilters.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setStatus(f.value)}
+            className={
+              'rounded-full px-3 py-1 text-sm font-medium transition ' +
+              (status === f.value
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200')
+            }
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <SkeletonGrid count={4} />
+      ) : isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : workers.length === 0 ? (
+        <EmptyState icon="🛠️" title="No workers in this queue" />
+      ) : (
         <div className="grid gap-3">
           {workers.map((worker) => {
             const user =
@@ -37,23 +61,21 @@ export default function AdminWorkers() {
                 ? { _id: worker.userId, name: worker.userId }
                 : worker.userId
             return (
-              <Link
-                key={worker._id}
-                to={buildRoute(ROUTES.ADMIN_WORKER_DETAIL, { id: user._id })}
-                className="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-primary-50"
-              >
-                <div>
-                  <p className="font-semibold text-gray-950">{user.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {worker.categoryId} • {worker.skills.join(', ')}
-                  </p>
-                </div>
-                <StatusBadge status={worker.verificationStatus} />
+              <Link key={worker._id} to={buildRoute(ROUTES.ADMIN_WORKER_DETAIL, { id: user._id })}>
+                <Card className="flex items-center justify-between p-4 transition hover:border-primary-300 hover:bg-primary-50/40">
+                  <div>
+                    <p className="font-semibold text-gray-950">{user.name}</p>
+                    <p className="text-sm text-gray-500">
+                      {worker.categoryId} • {worker.skills.join(', ')}
+                    </p>
+                  </div>
+                  <StatusBadge status={worker.verificationStatus} />
+                </Card>
               </Link>
             )
           })}
         </div>
-      </SectionCard>
-    </DashboardShell>
+      )}
+    </DashboardLayout>
   )
 }

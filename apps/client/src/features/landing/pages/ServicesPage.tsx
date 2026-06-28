@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
-import { Footer, PublicNav } from '@/features/phase8/components'
-import { serviceCategories } from '@/features/phase8/mockData'
+import { PublicLayout } from '@/components/layout'
+import { serviceCategories } from '../serviceCategories'
 
 export default function ServicesPage() {
   return (
-    <div className="min-h-screen bg-white">
-      <PublicNav />
+    <PublicLayout>
       <main className="container py-12">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary-700">Services</p>
         <h1 className="mt-2 text-4xl font-bold text-gray-950">Find help across 10 categories</h1>
@@ -28,7 +27,6 @@ export default function ServicesPage() {
           ))}
         </div>
       </main>
-      <Footer />
-    </div>
+    </PublicLayout>
   )
 }

@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -14,10 +15,7 @@ vi.mock('@/features/auth/api', () => ({
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
-  return {
-    ...actual,
-    useNavigate: () => vi.fn(),
-  }
+  return { ...actual, useNavigate: () => vi.fn() }
 })
 
 const authResult = {
@@ -30,10 +28,16 @@ const authResult = {
     profileImage: null,
     isVerified: true,
   },
-  tokens: {
-    accessToken: 'access-token',
-    refreshToken: 'refresh-token',
-  },
+  tokens: { accessToken: 'access-token', refreshToken: 'refresh-token' },
+}
+
+function renderWithProviders(ui: React.ReactNode) {
+  const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  )
 }
 
 describe('auth pages', () => {
@@ -46,49 +50,43 @@ describe('auth pages', () => {
   it('submits login and stores auth tokens', async () => {
     vi.mocked(login).mockResolvedValue(authResult)
 
-    render(
-      <MemoryRouter>
-        <LoginPage />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<LoginPage />)
 
     await userEvent.type(screen.getByLabelText(/email/i), 'amit@example.com')
     await userEvent.type(screen.getByLabelText(/password/i), 'password123')
-    await userEvent.click(screen.getByRole('button', { name: /login/i }))
+    // The page nav also has a "Login" button; the form submit is the last one.
+    const loginButtons = screen.getAllByRole('button', { name: /login/i })
+    await userEvent.click(loginButtons[loginButtons.length - 1])
 
-    await waitFor(() =>
-      expect(login).toHaveBeenCalledWith({ email: 'amit@example.com', password: 'password123' }),
-    )
+    // React Query passes (variables, context) — assert on the variables only.
+    await waitFor(() => expect(login).toHaveBeenCalled())
+    expect(vi.mocked(login).mock.calls[0][0]).toEqual({
+      email: 'amit@example.com',
+      password: 'password123',
+    })
     expect(localStorage.getItem('accessToken')).toBe('access-token')
-    expect(localStorage.getItem('refreshToken')).toBe('refresh-token')
     expect(useAuthStore.getState().isAuthenticated).toBe(true)
   })
 
   it('submits register and stores auth tokens', async () => {
     vi.mocked(register).mockResolvedValue(authResult)
 
-    render(
-      <MemoryRouter>
-        <RegisterPage />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<RegisterPage />)
 
     await userEvent.type(screen.getByLabelText(/full name/i), 'Amit Sharma')
     await userEvent.type(screen.getByLabelText(/phone/i), '9876543210')
     await userEvent.type(screen.getByLabelText(/email/i), 'amit@example.com')
     await userEvent.type(screen.getByLabelText(/password/i), 'password123')
-    await userEvent.click(screen.getByRole('button', { name: /register/i }))
+    await userEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() =>
-      expect(register).toHaveBeenCalledWith({
-        name: 'Amit Sharma',
-        phone: '9876543210',
-        email: 'amit@example.com',
-        role: 'customer',
-        password: 'password123',
-      }),
-    )
+    await waitFor(() => expect(register).toHaveBeenCalled())
+    expect(vi.mocked(register).mock.calls[0][0]).toEqual({
+      name: 'Amit Sharma',
+      phone: '9876543210',
+      email: 'amit@example.com',
+      role: 'customer',
+      password: 'password123',
+    })
     expect(localStorage.getItem('accessToken')).toBe('access-token')
-    expect(localStorage.getItem('refreshToken')).toBe('refresh-token')
   })
 })

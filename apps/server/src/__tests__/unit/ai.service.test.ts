@@ -14,11 +14,20 @@ jest.mock('../../models/WorkerProfile.model', () => ({
   WorkerProfileModel: { countDocuments: jest.fn(), find: jest.fn() },
 }))
 
+jest.mock('../../services/claude.service', () => ({
+  generateWorkerBio: jest.fn(),
+  isClaudeEnabled: jest.fn(() => false),
+}))
+
+import { generateWorkerBio } from '../../services/claude.service'
+
 describe('AI service rule-based features', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('returns profile assistant suggestions for weak profiles', () => {
-    const result = getProfileAssistantSuggestions({
+  it('returns rule-based profile suggestions when Claude is unavailable', async () => {
+    ;(generateWorkerBio as jest.Mock).mockResolvedValue(null)
+
+    const result = await getProfileAssistantSuggestions({
       bio: 'Good worker',
       skills: ['Wiring'],
       categoryId: 'Electrical',
@@ -26,9 +35,23 @@ describe('AI service rule-based features', () => {
     })
 
     expect(result.assistant).toBe('rule-based-profile-assistant-v1')
+    expect(result.improvedBio).toBeUndefined()
     expect(result.suggestions.map((item) => item.type)).toContain('profile_improvement')
     expect(result.suggestions.map((item) => item.type)).toContain('skill_gap')
     expect(result.nextBestAction).toBeTruthy()
+  })
+
+  it('includes a Claude-generated bio when available', async () => {
+    ;(generateWorkerBio as jest.Mock).mockResolvedValue('Experienced electrician, 8 years.')
+
+    const result = await getProfileAssistantSuggestions({
+      bio: '',
+      skills: ['Wiring'],
+      categoryId: 'Electrical',
+    })
+
+    expect(result.improvedBio).toBe('Experienced electrician, 8 years.')
+    expect(result.assistant).toContain('claude')
   })
 
   it('calculates dynamic price recommendation using supply demand factors', async () => {

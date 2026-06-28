@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface User {
+export interface User {
   _id: string
   name: string
   email: string
@@ -11,6 +11,12 @@ interface User {
   role: 'customer' | 'worker' | 'admin'
   profileImage: string | null
   isVerified: boolean
+  address?: {
+    street?: string
+    city?: string
+    state?: string
+    pincode?: string
+  }
 }
 
 interface AuthState {

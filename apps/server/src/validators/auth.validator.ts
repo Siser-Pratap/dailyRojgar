@@ -34,3 +34,19 @@ export const resetPasswordSchema = z.object({
   token: z.string().min(1),
   password: z.string().min(8, 'Password must be at least 8 characters').max(128),
 })
+
+export const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(2).max(60).optional(),
+    phone: z.string().trim().min(10).max(15).optional(),
+    profileImage: z.string().trim().url().optional(),
+    address: z
+      .object({
+        street: z.string().trim().max(200).optional(),
+        city: z.string().trim().max(100).optional(),
+        state: z.string().trim().max(100).optional(),
+        pincode: z.string().trim().max(10).optional(),
+      })
+      .optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: 'No fields to update' })

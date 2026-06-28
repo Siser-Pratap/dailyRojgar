@@ -7,6 +7,7 @@ export const createReviewSchema = z.object({
 })
 
 export const workerReviewsParamSchema = z.object({ workerId: z.string().min(1) })
+export const bookingReviewParamSchema = z.object({ bookingId: z.string().min(1) })
 export const reviewIdParamSchema = z.object({ id: z.string().min(1) })
 
 export const replyReviewSchema = z.object({

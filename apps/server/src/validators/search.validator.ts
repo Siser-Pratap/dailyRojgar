@@ -11,7 +11,7 @@ export const searchWorkersQuerySchema = z.object({
   availability: z
     .enum(['true', 'false'])
     .optional()
-    .transform((value) => value === 'true'),
+    .transform((value) => (value === undefined ? undefined : value === 'true')),
   sortBy: z.enum(['rating', 'price', 'distance', 'reviews', 'smart']).optional().default('rating'),
   page: z.coerce.number().min(1).optional().default(1),
   limit: z.coerce.number().min(1).max(50).optional().default(20),

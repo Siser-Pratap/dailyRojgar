@@ -1,7 +1,9 @@
-import React, { lazy, Suspense } from 'react'
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
-import { useAuthStore } from '@/app/store'
+import { RequireAuth } from '@/components/layout'
+import { PageSpinner } from '@/components/ui'
+import { useHydrateAuth } from '@/hooks/useHydrateAuth'
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
 const HomePage = lazy(() => import('@/features/landing/pages/HomePage'))
@@ -12,6 +14,7 @@ const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'))
 
 const CustomerDashboard = lazy(() => import('@/features/customer/pages/DashboardPage'))
 const CustomerSearch = lazy(() => import('@/features/search/pages/SearchPage'))
+const CustomerBookNew = lazy(() => import('@/features/booking/pages/BookingCreatePage'))
 const CustomerBookings = lazy(() => import('@/features/booking/pages/BookingsPage'))
 const CustomerBookingDetail = lazy(() => import('@/features/booking/pages/BookingDetailPage'))
 const CustomerChat = lazy(() => import('@/features/chat/pages/ChatPage'))
@@ -38,35 +41,6 @@ const AdminReports = lazy(() => import('@/features/admin/pages/ReportsPage'))
 const WorkerPublicProfile = lazy(() => import('@/features/worker/pages/PublicProfilePage'))
 const NotFoundPage = lazy(() => import('@/features/landing/pages/NotFoundPage'))
 
-// ─── Guards ───────────────────────────────────────────────────────────────────
-function RequireAuth({
-  children,
-  role,
-}: {
-  children: React.ReactNode
-  role?: 'customer' | 'worker' | 'admin'
-}) {
-  const { isAuthenticated, user } = useAuthStore()
-
-  if (!isAuthenticated) {
-    return <Navigate to={ROUTES.LOGIN} replace />
-  }
-
-  if (role && user?.role !== role) {
-    return <Navigate to={ROUTES.HOME} replace />
-  }
-
-  return <>{children}</>
-}
-
-function PageLoader() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
-}
-
 // ─── Router definition ────────────────────────────────────────────────────────
 const router = createBrowserRouter([
   // Public
@@ -91,6 +65,14 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth role="customer">
         <CustomerSearch />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: ROUTES.CUSTOMER_BOOK_NEW,
+    element: (
+      <RequireAuth role="customer">
+        <CustomerBookNew />
       </RequireAuth>
     ),
   },
@@ -264,8 +246,14 @@ const router = createBrowserRouter([
 ])
 
 export default function AppRouter() {
+  const ready = useHydrateAuth()
+
+  if (!ready) {
+    return <PageSpinner />
+  }
+
   return (
-    <Suspense fallback={<PageLoader />}>
+    <Suspense fallback={<PageSpinner />}>
       <RouterProvider router={router} />
     </Suspense>
   )

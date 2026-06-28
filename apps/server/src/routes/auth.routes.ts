@@ -10,6 +10,7 @@ import {
   refreshSchema,
   registerSchema,
   resetPasswordSchema,
+  updateProfileSchema,
   verifyOtpSchema,
 } from '../validators/auth.validator'
 
@@ -24,5 +25,6 @@ router.post('/resend-otp', validate(phoneSchema), AuthController.resendOtp)
 router.post('/forgot-password', validate(forgotPasswordSchema), AuthController.forgotPassword)
 router.post('/reset-password', validate(resetPasswordSchema), AuthController.resetPassword)
 router.get('/me', authenticate, AuthController.me)
+router.patch('/me', authenticate, validate(updateProfileSchema), AuthController.updateMe)
 
 export default router

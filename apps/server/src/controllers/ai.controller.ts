@@ -25,7 +25,7 @@ export const AiController = {
   }),
 
   profileAssistant: asyncHandler(async (req: Request, res: Response) => {
-    const result = getProfileAssistantSuggestions(req.body)
+    const result = await getProfileAssistantSuggestions(req.body)
     return ApiResponse.success(res, {
       message: 'Profile suggestions generated successfully',
       data: result,

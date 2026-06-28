@@ -3,12 +3,14 @@ import { ApiResponse } from '../utils/ApiResponse'
 import { asyncHandler } from '../utils/asyncHandler'
 import {
   forgotPassword,
+  getUserProfile,
   loginUser,
   logoutUser,
   refreshAccessToken,
   registerUser,
   resendOtp,
   resetPassword,
+  updateUserProfile,
   verifyOtp,
 } from '../services/auth.service'
 
@@ -98,10 +100,20 @@ export const AuthController = {
       })
     }
 
+    const user = await getUserProfile(req.user.sub)
     return ApiResponse.success(res, {
       statusCode: 200,
       message: 'User fetched successfully',
-      data: { user: req.user },
+      data: { user },
+    })
+  }),
+
+  updateMe: asyncHandler(async (req: Request, res: Response) => {
+    const user = await updateUserProfile(req.user!.sub, req.body)
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: 'Profile updated successfully',
+      data: { user },
     })
   }),
 }

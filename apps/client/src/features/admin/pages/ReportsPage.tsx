@@ -1,113 +1,115 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { DashboardShell, SectionCard, StatusBadge } from '@/features/phase8/components'
-import { fetchAdminDisputes, resolveDispute } from '../api'
+import { DashboardLayout } from '@/components/layout'
+import { Button, Card, Input, StatusBadge, SkeletonGrid } from '@/components/ui'
+import { EmptyState, ErrorState } from '@/components/feedback'
+import { useToast } from '@/hooks/useToast'
+import { getApiErrorMessage } from '@/lib/apiError'
+import { fetchAdminDisputes, resolveDispute, type AdminDispute } from '../api'
 
-type AnyRecord = Record<string, unknown>
-type DisputeVariables = {
+interface ResolveVars {
   bookingId: string
   payload: { resolution: 'customer' | 'worker' | 'partial'; refundAmount?: number; notes?: string }
 }
 
 export default function AdminReports() {
   const queryClient = useQueryClient()
-  const { data, isError } = useQuery({ queryKey: ['admin-disputes'], queryFn: fetchAdminDisputes })
-  const mutation = useMutation({
-    mutationFn: ({ bookingId, payload }: DisputeVariables) => resolveDispute(bookingId, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-disputes'] }),
+  const toast = useToast()
+  const [partialAmounts, setPartialAmounts] = useState<Record<string, string>>({})
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['admin-disputes'],
+    queryFn: fetchAdminDisputes,
   })
-  const disputes: AnyRecord[] = data?.length
-    ? data
-    : [
-        {
-          _id: 'DR-2026-000128',
-          bookingNumber: 'DR-2026-000128',
-          dispute: { reason: 'Customer raised a delay dispute.', status: 'open' },
-          status: 'disputed',
-        },
-      ]
-  const selectedId = String(disputes[0]?._id ?? '')
+
+  const mutation = useMutation({
+    mutationFn: ({ bookingId, payload }: ResolveVars) => resolveDispute(bookingId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-disputes'] })
+      toast.success('Dispute resolved')
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, 'Could not resolve dispute')),
+  })
+
+  const disputes = data ?? []
+
+  const resolve = (dispute: AdminDispute, resolution: 'customer' | 'worker' | 'partial') => {
+    const refundAmount =
+      resolution === 'partial' ? Number(partialAmounts[dispute._id] || 0) : undefined
+    if (resolution === 'partial' && (!refundAmount || refundAmount <= 0)) {
+      toast.error('Enter a refund amount')
+      return
+    }
+    mutation.mutate({
+      bookingId: dispute._id,
+      payload: { resolution, refundAmount, notes: `Resolved as ${resolution} by admin` },
+    })
+  }
 
   return (
-    <DashboardShell role="Admin" title="Reports and disputes">
-      <div className="grid gap-6 lg:grid-cols-2">
-        <SectionCard title="Open disputes">
-          {isError && (
-            <p className="mb-3 rounded bg-yellow-50 p-3 text-sm text-yellow-700">
-              Using fallback disputes while API is unavailable.
-            </p>
-          )}
-          <div className="grid gap-3">
-            {disputes.map((dispute) => {
-              const disputeInfo = dispute.dispute as
-                | { reason?: string; status?: string }
-                | undefined
-              return (
-                <div
-                  key={String(dispute._id)}
-                  className="rounded-lg border border-yellow-200 bg-yellow-50 p-4"
-                >
-                  <p className="font-semibold text-gray-950">
-                    {String(dispute.bookingNumber ?? dispute._id)}
-                  </p>
-                  <p className="text-sm text-yellow-700">
-                    {String(disputeInfo?.reason ?? 'Open dispute')}
-                  </p>
-                  <StatusBadge status={String(disputeInfo?.status ?? dispute.status)} />
-                </div>
-              )
-            })}
-          </div>
-        </SectionCard>
-        <SectionCard title="Resolution tools">
-          <div className="grid gap-2">
-            <button
-              className="btn-primary btn-md"
-              disabled={mutation.isPending}
-              onClick={() =>
-                mutation.mutate({
-                  bookingId: selectedId,
-                  payload: { resolution: 'customer', notes: 'Resolved for customer by admin' },
-                })
-              }
-            >
-              Resolve for customer
-            </button>
-            <button
-              className="btn-outline btn-md"
-              disabled={mutation.isPending}
-              onClick={() =>
-                mutation.mutate({
-                  bookingId: selectedId,
-                  payload: { resolution: 'worker', notes: 'Closed in worker favor' },
-                })
-              }
-            >
-              Resolve for worker
-            </button>
-            <button
-              className="btn-outline btn-md"
-              disabled={mutation.isPending}
-              onClick={() =>
-                mutation.mutate({
-                  bookingId: selectedId,
-                  payload: {
-                    resolution: 'partial',
-                    refundAmount: 250,
-                    notes: 'Partial refund approved',
-                  },
-                })
-              }
-            >
-              Partial refund ₹250
-            </button>
-            {mutation.isSuccess && (
-              <p className="rounded bg-primary-50 p-2 text-sm text-primary-800">
-                Dispute resolution submitted.
-              </p>
-            )}
-          </div>
-        </SectionCard>
+    <DashboardLayout>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-950">Reports & disputes</h1>
+        <p className="mt-1 text-sm text-gray-600">Review and resolve open disputes.</p>
       </div>
-    </DashboardShell>
+
+      {isLoading ? (
+        <SkeletonGrid count={3} />
+      ) : isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : disputes.length === 0 ? (
+        <EmptyState icon="✅" title="No open disputes" description="All clear right now." />
+      ) : (
+        <div className="grid gap-4">
+          {disputes.map((dispute) => (
+            <Card key={dispute._id} className="p-5">
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-gray-950">{dispute.bookingNumber}</p>
+                <StatusBadge status={dispute.dispute?.status ?? dispute.status} />
+              </div>
+              <p className="mt-1 text-sm text-gray-600">
+                {dispute.dispute?.reason ?? 'Open dispute'}
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  disabled={mutation.isPending}
+                  onClick={() => resolve(dispute, 'customer')}
+                >
+                  For customer
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={mutation.isPending}
+                  onClick={() => resolve(dispute, 'worker')}
+                >
+                  For worker
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="₹ amount"
+                    className="w-28"
+                    value={partialAmounts[dispute._id] ?? ''}
+                    onChange={(e) =>
+                      setPartialAmounts((prev) => ({ ...prev, [dispute._id]: e.target.value }))
+                    }
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={mutation.isPending}
+                    onClick={() => resolve(dispute, 'partial')}
+                  >
+                    Partial refund
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </DashboardLayout>
   )
 }

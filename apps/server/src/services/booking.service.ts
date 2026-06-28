@@ -149,6 +149,8 @@ export async function listMyBookings(
 
   const [items, total] = await Promise.all([
     BookingModel.find(filter)
+      .populate('customerId', 'name profileImage phone')
+      .populate('workerId', 'name profileImage phone')
       .sort({ createdAt: -1 })
       .skip(pagination.skip)
       .limit(pagination.limit)
@@ -159,12 +161,17 @@ export async function listMyBookings(
 }
 
 export async function getBookingDetail(userId: string, role: string, bookingId: string) {
-  const booking = await BookingModel.findById(bookingId).lean()
+  const booking = await BookingModel.findById(bookingId)
+    .populate('customerId', 'name profileImage phone')
+    .populate('workerId', 'name profileImage phone')
+    .lean()
   if (!booking) throw ApiError.notFound('Booking')
+  // customerId/workerId are populated objects, so compare against their _id.
+  const ownerId = (party: unknown) => String((party as { _id?: unknown })?._id ?? party)
   if (
     role !== 'admin' &&
-    String(booking.customerId) !== userId &&
-    String(booking.workerId) !== userId
+    ownerId(booking.customerId) !== userId &&
+    ownerId(booking.workerId) !== userId
   ) {
     throw ApiError.forbidden('You do not have access to this booking')
   }

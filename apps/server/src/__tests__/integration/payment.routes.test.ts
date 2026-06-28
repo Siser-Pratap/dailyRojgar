@@ -89,4 +89,23 @@ describe('payment routes integration', () => {
       expect.any(String),
     )
   })
+
+  it('lets an admin refund a payment', async () => {
+    ;(paymentService.refundPayment as jest.Mock).mockResolvedValue({ status: 'refund_initiated' })
+
+    const res = await request(app)
+      .post('/api/payments/pay-1/refund')
+      .set('x-test-role', 'admin')
+      .send({ reason: 'Admin refund' })
+
+    expect(res.status).toBe(200)
+    expect(paymentService.refundPayment).toHaveBeenCalledWith('pay-1', 'Admin refund')
+  })
+
+  it('blocks a customer from refunding a payment', async () => {
+    const res = await request(app).post('/api/payments/pay-1/refund').send({ reason: 'x' })
+
+    expect(res.status).toBe(403)
+    expect(paymentService.refundPayment).not.toHaveBeenCalled()
+  })
 })

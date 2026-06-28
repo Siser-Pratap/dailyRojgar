@@ -52,6 +52,11 @@ const envSchema = z.object({
   // Monitoring
   SENTRY_DSN: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().url().optional(),
+
+  // AI (Claude). When ANTHROPIC_API_KEY is unset, AI features fall back to
+  // the deterministic rule-based engine.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default('claude-opus-4-8'),
 })
 
 const parsed = envSchema.safeParse(process.env)

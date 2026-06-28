@@ -10,6 +10,7 @@ import bookingRoutes from './bookings.routes'
 import paymentRoutes from './payments.routes'
 import reviewRoutes from './reviews.routes'
 import notificationRoutes from './notifications.routes'
+import chatRoutes from './chats.routes'
 import adminRoutes from './admin.routes'
 import aiRoutes from './ai.routes'
 
@@ -59,6 +60,7 @@ router.use('/bookings', bookingRoutes)
 router.use('/payments', paymentRoutes)
 router.use('/reviews', reviewRoutes)
 router.use('/notifications', notificationRoutes)
+router.use('/chats', chatRoutes)
 router.use('/admin', adminRoutes)
 router.use('/ai', aiRoutes)
 
