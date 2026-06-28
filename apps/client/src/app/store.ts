@@ -11,6 +11,12 @@ export interface User {
   role: 'customer' | 'worker' | 'admin'
   profileImage: string | null
   isVerified: boolean
+  address?: {
+    street?: string
+    city?: string
+    state?: string
+    pincode?: string
+  }
 }
 
 interface AuthState {

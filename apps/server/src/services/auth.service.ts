@@ -267,3 +267,41 @@ export async function resetPassword(input: ResetPasswordInput) {
 
   await Promise.all([redis.del(`password-reset:${input.token}`), redis.del(`refresh:${userId}`)])
 }
+
+export async function getUserProfile(userId: string) {
+  const user = await UserModel.findById(userId).select('-password -fcmTokens').lean()
+  if (!user) throw ApiError.notFound('User')
+  return user
+}
+
+interface UpdateProfileInput {
+  name?: string
+  phone?: string
+  profileImage?: string
+  address?: { street?: string; city?: string; state?: string; pincode?: string }
+}
+
+export async function updateUserProfile(userId: string, input: UpdateProfileInput) {
+  if (input.phone) {
+    const existing = await findUserByPhone(input.phone)
+    if (existing && String(existing._id) !== userId) {
+      throw ApiError.conflict('Phone already exists', 'USER_003')
+    }
+  }
+
+  const update: Record<string, unknown> = {}
+  if (input.name !== undefined) update.name = input.name
+  if (input.phone !== undefined) update.phone = input.phone
+  if (input.profileImage !== undefined) update.profileImage = input.profileImage
+  if (input.address !== undefined) update.address = input.address
+
+  const user = await UserModel.findByIdAndUpdate(
+    userId,
+    { $set: update },
+    { new: true, runValidators: true },
+  )
+    .select('-password -fcmTokens')
+    .lean()
+  if (!user) throw ApiError.notFound('User')
+  return user
+}

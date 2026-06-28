@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/useToast'
 import { ROUTES } from '@/constants/routes'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { login, register, logout, AuthResult } from './api'
+import { login, register, logout, updateProfile, AuthResult } from './api'
 import { getDashboardRoute } from './authRedirect'
 
 /** Logs in and routes to the intended page (or role dashboard). */
@@ -57,5 +57,25 @@ export function useLogout() {
       toast.success('Logged out')
       navigate(ROUTES.LOGIN, { replace: true })
     },
+  })
+}
+
+/** Updates the current user's profile and syncs the auth store. */
+export function useUpdateProfile() {
+  const { updateUser } = useAuth()
+  const toast = useToast()
+
+  return useMutation({
+    mutationFn: updateProfile,
+    onSuccess: (user) => {
+      updateUser({
+        name: user.name,
+        phone: user.phone,
+        profileImage: user.profileImage,
+        address: user.address,
+      })
+      toast.success('Profile updated')
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, 'Could not update profile')),
   })
 }

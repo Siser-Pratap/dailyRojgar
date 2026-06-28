@@ -1,79 +1,112 @@
 import { Link } from 'react-router-dom'
-import { ROUTES } from '@/constants/routes'
-import {
-  DashboardShell,
-  SectionCard,
-  StatCard,
-  StatusBadge,
-  WorkerCard,
-} from '@/features/phase8/components'
-import { bookings, workers } from '@/features/phase8/mockData'
-import { formatCurrency } from '@/lib/utils'
+import { ROUTES, buildRoute } from '@/constants/routes'
+import { DashboardLayout } from '@/components/layout'
+import { Button, Card, StatusBadge, Skeleton } from '@/components/ui'
+import { EmptyState } from '@/components/feedback'
+import { useAuth } from '@/hooks/useAuth'
+import { formatCurrency, formatDate } from '@/lib/utils'
+import { useBookings } from '@/features/booking/hooks'
+
+const activeStatuses = ['accepted', 'in_progress']
 
 export default function CustomerDashboard() {
+  const { user } = useAuth()
+  const { data, isLoading } = useBookings({ limit: 50 })
+
+  const bookings = data?.items ?? []
+  const active = bookings.filter((b) => activeStatuses.includes(b.status))
+  const pending = bookings.filter((b) => b.status === 'pending')
+  const completed = bookings.filter((b) => b.status === 'completed')
+  const totalSpend = bookings
+    .filter((b) => b.paymentStatus === 'paid')
+    .reduce((sum, b) => sum + b.totalAmount, 0)
+
   return (
-    <DashboardShell role="Customer" title="Dashboard">
-      <div className="grid gap-6">
-        <div className="grid gap-4 md:grid-cols-4">
-          <StatCard label="Active bookings" value="1" change="Live" />
-          <StatCard label="Upcoming" value="2" />
-          <StatCard label="Total spend" value={formatCurrency(2475)} />
-          <StatCard label="Pending reviews" value="1" />
+    <DashboardLayout>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-950">
+            Welcome{user ? `, ${user.name.split(' ')[0]}` : ''}
+          </h1>
+          <p className="mt-1 text-sm text-gray-600">Your bookings at a glance.</p>
         </div>
-        <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
-          <SectionCard
-            title="Active booking"
-            action={
-              <Link to={ROUTES.CUSTOMER_BOOKINGS} className="btn-outline btn-sm">
-                View all
-              </Link>
-            }
-          >
-            <div className="rounded-xl bg-primary-50 p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-bold text-gray-950">
-                    {bookings[0].category} with {bookings[0].worker}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {bookings[0].date} • {bookings[0].address}
-                  </p>
-                </div>
-                <StatusBadge status={bookings[0].status} />
-              </div>
-              <div className="mt-4 flex gap-3">
-                <Link to={ROUTES.CUSTOMER_CHAT} className="btn-primary btn-sm">
-                  Open chat
-                </Link>
-                <Link to={ROUTES.CUSTOMER_PAYMENT} className="btn-outline btn-sm">
-                  Payment
-                </Link>
-              </div>
-            </div>
-          </SectionCard>
-          <SectionCard title="Quick search">
-            <WorkerCard worker={workers[0]} />
-          </SectionCard>
+        <Link to={ROUTES.CUSTOMER_SEARCH}>
+          <Button>Find workers</Button>
+        </Link>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Metric label="Active" value={String(active.length)} loading={isLoading} />
+        <Metric label="Pending" value={String(pending.length)} loading={isLoading} />
+        <Metric label="Completed" value={String(completed.length)} loading={isLoading} />
+        <Metric label="Total spend" value={formatCurrency(totalSpend)} loading={isLoading} />
+      </div>
+
+      <Card className="mt-6 p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-950">Recent bookings</h2>
+          <Link to={ROUTES.CUSTOMER_BOOKINGS}>
+            <Button variant="outline" size="sm">
+              View all
+            </Button>
+          </Link>
         </div>
-        <SectionCard title="Recent bookings">
-          <div className="grid gap-3">
-            {bookings.map((booking) => (
-              <div
-                key={booking.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 p-4"
-              >
-                <div>
-                  <p className="font-semibold text-gray-950">{booking.category}</p>
-                  <p className="text-sm text-gray-500">
-                    {booking.worker} • {booking.date}
-                  </p>
-                </div>
-                <StatusBadge status={booking.status} />
-              </div>
+        {isLoading ? (
+          <div className="grid gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
             ))}
           </div>
-        </SectionCard>
-      </div>
-    </DashboardShell>
+        ) : bookings.length === 0 ? (
+          <EmptyState
+            icon="🔍"
+            title="No bookings yet"
+            description="Find a worker and make your first booking."
+            action={
+              <Link to={ROUTES.CUSTOMER_SEARCH}>
+                <Button>Find workers</Button>
+              </Link>
+            }
+          />
+        ) : (
+          <div className="grid gap-3">
+            {bookings.slice(0, 5).map((booking) => (
+              <Link
+                key={booking._id}
+                to={buildRoute(ROUTES.CUSTOMER_BOOKING_DETAIL, { id: booking._id })}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 p-4 transition hover:bg-primary-50/40">
+                  <div>
+                    <p className="font-semibold text-gray-950">
+                      {booking.categoryId} with {booking.workerId.name}
+                    </p>
+                    <p className="text-sm text-gray-500">{formatDate(booking.scheduledDate)}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={booking.status} />
+                    <span className="font-bold text-gray-950">
+                      {formatCurrency(booking.totalAmount)}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Card>
+    </DashboardLayout>
+  )
+}
+
+function Metric({ label, value, loading }: { label: string; value: string; loading?: boolean }) {
+  return (
+    <Card className="p-5">
+      <p className="text-sm text-gray-500">{label}</p>
+      {loading ? (
+        <Skeleton className="mt-2 h-7 w-16" />
+      ) : (
+        <p className="mt-1 text-2xl font-bold text-gray-950">{value}</p>
+      )}
+    </Card>
   )
 }
