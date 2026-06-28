@@ -1,122 +1,98 @@
-import { FormEvent, useState } from 'react'
-import { AxiosError } from 'axios'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '@/app/store'
+import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
+import { z } from 'zod'
 import { ROUTES } from '@/constants/routes'
-import { PublicNav } from '@/features/phase8/components'
-import { register, UserRole } from '../api'
-import { getDashboardRoute } from '../authRedirect'
+import { PublicLayout } from '@/components/layout'
+import { Button, Input, Select } from '@/components/ui'
+import { zodResolver } from '@/lib/zodResolver'
+import { useRegister } from '../hooks'
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof AxiosError) {
-    const data = error.response?.data as { message?: string } | undefined
-    return data?.message ?? 'Registration failed. Please review your details.'
-  }
-  return error instanceof Error ? error.message : 'Registration failed. Please try again.'
-}
+const registerSchema = z.object({
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(60),
+  phone: z.string().trim().min(10, 'Enter a valid phone number').max(15),
+  email: z.string().trim().email('Enter a valid email address'),
+  role: z.enum(['customer', 'worker']),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+})
+
+type RegisterForm = z.infer<typeof registerSchema>
+
+const roleOptions = [
+  { label: 'I want to hire workers (Customer)', value: 'customer' },
+  { label: 'I want to find work (Worker)', value: 'worker' },
+]
 
 export default function RegisterPage() {
-  const navigate = useNavigate()
-  const setAuth = useAuthStore((state) => state.setAuth)
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState<UserRole>('customer')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const registerMutation = useRegister()
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-    setLoading(true)
-
-    try {
-      const result = await register({ name, phone, email, role, password })
-      setAuth(result.user, result.tokens.accessToken, result.tokens.refreshToken)
-      navigate(getDashboardRoute(result.user.role), { replace: true })
-    } catch (err) {
-      setError(getErrorMessage(err))
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterForm>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { role: 'customer' },
+  })
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <PublicNav />
-      <main className="container flex min-h-[calc(100vh-4rem)] items-center justify-center py-12">
+    <PublicLayout>
+      <div className="container flex min-h-[calc(100vh-8rem)] items-center justify-center py-12">
         <section className="card w-full max-w-2xl p-6">
-          <span className="badge-green">Join dailyRojgar</span>
-          <h1 className="mt-4 text-3xl font-bold text-gray-950">Create your account</h1>
-          <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-            <label className="text-sm font-semibold text-gray-700">
-              Full name
-              <input
-                className="input mt-2"
-                placeholder="Rahul Singh"
-                autoComplete="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                minLength={2}
-                required
-              />
-            </label>
-            <label className="text-sm font-semibold text-gray-700">
-              Phone
-              <input
-                className="input mt-2"
-                placeholder="9876543210"
-                autoComplete="tel"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                minLength={10}
-                required
-              />
-            </label>
-            <label className="text-sm font-semibold text-gray-700">
-              Email
-              <input
-                className="input mt-2"
-                type="email"
-                placeholder="you@example.com"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </label>
-            <label className="text-sm font-semibold text-gray-700">
-              Role
-              <select
-                className="input mt-2"
-                value={role}
-                onChange={(event) => setRole(event.target.value as UserRole)}
-              >
-                <option value="customer">customer</option>
-                <option value="worker">worker</option>
-              </select>
-            </label>
-            <label className="text-sm font-semibold text-gray-700 md:col-span-2">
-              Password
-              <input
-                className="input mt-2"
+          <h1 className="text-3xl font-bold text-gray-950">Create your account</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Join dailyRojgar to hire trusted workers or find daily work.
+          </p>
+
+          <form
+            className="mt-6 grid gap-4 md:grid-cols-2"
+            onSubmit={handleSubmit((values) => registerMutation.mutate(values))}
+            noValidate
+          >
+            <Input
+              label="Full name"
+              placeholder="Rahul Singh"
+              autoComplete="name"
+              error={errors.name?.message}
+              {...register('name')}
+            />
+            <Input
+              label="Phone"
+              placeholder="9876543210"
+              autoComplete="tel"
+              error={errors.phone?.message}
+              {...register('phone')}
+            />
+            <Input
+              label="Email"
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              error={errors.email?.message}
+              {...register('email')}
+            />
+            <Select
+              label="I am a"
+              options={roleOptions}
+              error={errors.role?.message}
+              {...register('role')}
+            />
+            <div className="md:col-span-2">
+              <Input
+                label="Password"
                 type="password"
                 placeholder="Minimum 8 characters"
                 autoComplete="new-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                minLength={8}
-                required
+                error={errors.password?.message}
+                {...register('password')}
               />
-            </label>
-            {error && (
-              <p className="rounded bg-red-50 p-3 text-sm text-red-700 md:col-span-2">{error}</p>
-            )}
-            <button className="btn-primary btn-lg md:col-span-2" type="submit" disabled={loading}>
-              {loading ? 'Creating account…' : 'Register'}
-            </button>
+            </div>
+            <div className="md:col-span-2">
+              <Button type="submit" size="lg" fullWidth isLoading={registerMutation.isPending}>
+                Create account
+              </Button>
+            </div>
           </form>
+
           <p className="mt-4 text-center text-sm text-gray-600">
             Already have an account?{' '}
             <Link to={ROUTES.LOGIN} className="font-semibold text-primary-700">
@@ -124,7 +100,7 @@ export default function RegisterPage() {
             </Link>
           </p>
         </section>
-      </main>
-    </div>
+      </div>
+    </PublicLayout>
   )
 }

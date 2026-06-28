@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
 import { RequireAuth } from '@/components/layout'
 import { PageSpinner } from '@/components/ui'
+import { useHydrateAuth } from '@/hooks/useHydrateAuth'
 
 // ─── Lazy-loaded pages ────────────────────────────────────────────────────────
 const HomePage = lazy(() => import('@/features/landing/pages/HomePage'))
@@ -236,6 +237,12 @@ const router = createBrowserRouter([
 ])
 
 export default function AppRouter() {
+  const ready = useHydrateAuth()
+
+  if (!ready) {
+    return <PageSpinner />
+  }
+
   return (
     <Suspense fallback={<PageSpinner />}>
       <RouterProvider router={router} />

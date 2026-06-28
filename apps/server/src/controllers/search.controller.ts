@@ -13,7 +13,8 @@ export const SearchController = {
       categoryId: req.query.categoryId as string | undefined,
       minRating: req.query.minRating ? Number(req.query.minRating) : undefined,
       maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
-      availability: req.query.availability ? req.query.availability === 'true' : undefined,
+      // `availability` is already coerced to a boolean (or undefined) by the validator.
+      availability: req.query.availability as boolean | undefined,
       sortBy:
         (req.query.sortBy as 'rating' | 'price' | 'distance' | 'reviews' | 'smart') || 'rating',
       page: req.query.page ? Number(req.query.page) : 1,

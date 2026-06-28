@@ -43,3 +43,15 @@ export async function register(input: {
   const { data } = await apiClient.post<ApiEnvelope<AuthResult>>('/auth/register', input)
   return data.data
 }
+
+export async function logout() {
+  const { data } = await apiClient.post<ApiEnvelope<null>>('/auth/logout')
+  return data.data
+}
+
+/** Returns the decoded session payload, or null if the session is invalid. */
+export async function getCurrentSession() {
+  const { data } =
+    await apiClient.get<ApiEnvelope<{ user: { sub: string; role: UserRole } } | null>>('/auth/me')
+  return data.data
+}

@@ -1,8 +1,8 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
 import { useAuth } from '@/hooks/useAuth'
 import { useUIStore } from '@/app/store'
-import { useToast } from '@/hooks/useToast'
+import { useLogout } from '@/features/auth/hooks'
 import { Avatar, Button } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/features/auth/api'
@@ -45,20 +45,13 @@ const roleLabel: Record<UserRole, string> = {
 
 /** Authenticated dashboard shell with role-aware sidebar. Use as a layout route. */
 export function DashboardLayout({ children }: { children?: React.ReactNode }) {
-  const { user, role, clearAuth } = useAuth()
+  const { user, role } = useAuth()
   const { sidebarOpen, setSidebarOpen } = useUIStore()
-  const navigate = useNavigate()
-  const toast = useToast()
+  const logoutMutation = useLogout()
 
   if (!user || !role) return null
 
   const items = navByRole[role]
-
-  const handleLogout = () => {
-    clearAuth()
-    toast.success('Logged out')
-    navigate(ROUTES.LOGIN)
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -124,7 +117,12 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                 <p className="text-xs text-gray-500">{roleLabel[role]}</p>
               </div>
               <Avatar name={user.name} src={user.profileImage} size="sm" />
-              <Button variant="outline" size="sm" onClick={handleLogout}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => logoutMutation.mutate()}
+                isLoading={logoutMutation.isPending}
+              >
                 Logout
               </Button>
             </div>
